@@ -18,7 +18,8 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class User implements UserDetails{
+public class User implements UserDetails, Serializable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -27,29 +28,30 @@ public class User implements UserDetails{
     private String name;
 
     @Column(nullable = false)
-    private  String lastName;
+    private String lastName;
 
     @Column(name = "email", unique = true, nullable = false)
     private String email;
 
     @Column(nullable = false)
     private String password;
-@Enumerated(EnumType.STRING)
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-@Column(nullable = false, columnDefinition = "boolean default true")
-    private boolean active;
 
-public User(String name, String lastName, String email, String password, Role role, boolean active) {
-    this.name=name;
-    this.lastName=lastName;
-    this.email=email;
-    this.password=password;
-    this.role=role;
-    this.active=active;
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
 
-}
-
+    // Constructor usado en tests (sin "active")
+    public User(String name, String lastName, String email, String password, Role role) {
+        this.name = name;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.active = true; // por defecto
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -58,26 +60,26 @@ public User(String name, String lastName, String email, String password, Role ro
 
     @Override
     public String getUsername() {
-        return "";
+        return this.email; // 👈 Mejor usar email como username
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return true; // siempre válido en este caso
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return true; // siempre válido en este caso
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true; // siempre válido en este caso
     }
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return this.active;
     }
 }
