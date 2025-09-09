@@ -34,7 +34,9 @@ public class Supplier {
     @Column(nullable = false)
     private String address;
 
-
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SupplierType supplierType;
 
 
 }
