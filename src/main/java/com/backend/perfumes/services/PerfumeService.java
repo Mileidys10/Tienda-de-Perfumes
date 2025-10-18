@@ -16,7 +16,7 @@ public class PerfumeService {
     }
 
     @Transactional
-    public Perfume crearPerfume(PerfumeDTO dto) {
+    public Perfume crearPerfume(PerfumeDTO dto, String username) {
 
         if (dto.getPrice() <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor que 0");
@@ -26,9 +26,9 @@ public class PerfumeService {
             throw new IllegalArgumentException("El stock no puede ser negativo");
         }
 
-        if (dto.getSize_ml() < 1) {
+        /*if (dto.getSize_ml() < 1) {
             throw new IllegalArgumentException("El tamaño debe ser al menos 1 ml");
-        }
+        }*/
 
         /*Brand brand = brandRepository.findById(dto.getBrandId())
                 .orElseThrow(() -> new EntityNotFoundException("Marca no encontrada con ID: " + dto.getBrandId()));
@@ -41,9 +41,9 @@ public class PerfumeService {
         perfume.setDescription(dto.getDescription());
         perfume.setPrice(dto.getPrice());
         perfume.setStock(dto.getStock());
-        perfume.setSize_ml(dto.getSize_ml());
+        //perfume.setSize_ml(dto.getSize_ml());
         perfume.setGenre(dto.getGenre());
-        perfume.setRelease_date(dto.getRelease_date());
+        //perfume.setRelease_date(dto.getRelease_date());
         //perfume.setBrand(brand);
         //perfume.setCategory(category);
 

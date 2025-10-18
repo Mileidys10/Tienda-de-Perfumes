@@ -2,7 +2,6 @@ package com.backend.perfumes.dto;
 
 import com.backend.perfumes.model.Genre;
 import jakarta.validation.constraints.*;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,13 +30,13 @@ public class PerfumeDTO {
     private int stock;
 
     @Min(value = 1, message = "El tamaño debe ser al menos 1 ml")
-    private int size_ml;
+    private int sizeMl;
 
     @NotNull(message = "El género es obligatorio")
     private Genre genre;
 
     @NotBlank(message = "La fecha de lanzamiento no puede estar vacía")
-    private String release_date;
+    private String releaseDate;
 
     @NotNull(message = "Debe especificar una marca válida (brandId)")
     private Long brandId;
