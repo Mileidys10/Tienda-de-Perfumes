@@ -47,7 +47,7 @@ public class AuthController {
                     @ApiResponse(responseCode = "400", description = "Credenciales inválidas")
             }
     )
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
 
         try{
