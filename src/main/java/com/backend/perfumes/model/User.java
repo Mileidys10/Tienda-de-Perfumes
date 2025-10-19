@@ -55,27 +55,28 @@ public class User implements UserDetails, Serializable {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + this.role.name()));
     }
+
 
     @Override
     public String getUsername() {
-        return this.email; // 👈 Mejor usar email como username
+        return this.email;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // siempre válido en este caso
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // siempre válido en este caso
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true; // siempre válido en este caso
+        return true;
     }
 
     @Override

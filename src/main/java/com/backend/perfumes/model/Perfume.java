@@ -6,14 +6,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class Perfume {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +27,7 @@ public class Perfume {
     private float price;
 
     @Column(nullable=false)
-    private int  stock;
+    private int stock;
 
     @Column(nullable=false)
     private int size_ml;
@@ -47,26 +46,4 @@ public class Perfume {
     @ManyToOne(optional=false)
     @JoinColumn(name = "category_id")
     private Category category;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

@@ -48,7 +48,6 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    //verificar si el token es valido para el usuario
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
@@ -58,8 +57,17 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    //metodo generate token cuando se necesita datos extras
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        if (extraClaims == null) {
+            extraClaims = new HashMap<>();
+        }
+        if (!extraClaims.containsKey("roles")) {
+            var roles = userDetails.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .toList();
+            extraClaims.put("roles", roles);
+        }
+
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
