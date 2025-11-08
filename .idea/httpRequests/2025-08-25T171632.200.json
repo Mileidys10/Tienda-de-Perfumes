@@ -1,0 +1,10 @@
+{
+  "usuario": {
+    "apellido": "Agamez",
+    "name": "Mile",
+    "id": 3,
+    "email": "mileidys@gmail.com",
+    "rol": "ADMIN"
+  },
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJub21icmUiOiJNaWxlIiwicm9sIjoiQURNSU4iLCJlbWFpbCI6Im1pbGVpZHlzQGdtYWlsLmNvbSIsInN1YiI6Im1pbGVpZHlzQGdtYWlsLmNvbSIsImlhdCI6MTc1NjE2MDE5MiwiZXhwIjoxNzU2MTYzNzkyfQ.bA0C0S7oxxlrOkMl-zu-5ENEBK5MKtHQnWJwDt2AFdE"
+}

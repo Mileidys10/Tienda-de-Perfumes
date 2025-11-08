@@ -1,0 +1,122 @@
+GET http://localhost:8080/api/perfumes?filtro=4D5xhjsS
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2.1
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+Cookie: JSESSIONID=3644DE4B3BE9356A11AD09F06DF2C126
+
+<> 2025-11-08T173419.200.json
+
+###
+
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+Content-Length: 110
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2.1
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+Cookie: JSESSIONID=3644DE4B3BE9356A11AD09F06DF2C126
+
+{
+  "name": "Carlos Marrugo",
+  "email": "carlos@gmail.com",
+  "password": "carlos123",
+  "role": "VENDEDOR"
+}
+
+<> 2025-10-19T193138.400.json
+
+###
+
+POST http://localhost:8080/api/perfumes/nuevo
+Content-Type: application/json
+Content-Length: 211
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2.1
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+Cookie: JSESSIONID=1F32925FDCAD6DEC3AAC91F96FE988CA
+
+{
+  "id": 0,
+  "name": "khamrah",
+  "description": "Perfume olor a wiskey",
+  "price": 1000,
+  "stock": 100,
+  "sizeMl": 200,
+  "genre": "Masculino",
+  "releaseDate": "May 8",
+  "brandId": 0,
+  "categoryId": 0
+}
+
+###
+
+POST http://localhost:8080/api/perfumes/nuevo
+Content-Type: application/json
+Content-Length: 211
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2.1
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+Cookie: JSESSIONID=137EBDE625EC8865944397B079C5750B
+
+{
+  "id": 0,
+  "name": "khamrah",
+  "description": "Perfume olor a wiskey",
+  "price": 1000,
+  "stock": 100,
+  "sizeMl": 200,
+  "genre": "Masculino",
+  "releaseDate": "May 8",
+  "brandId": 0,
+  "categoryId": 0
+}
+
+###
+
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+Content-Length: 61
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+Cookie: JSESSIONID=137EBDE625EC8865944397B079C5750B
+
+{
+  "email": "mileidys@gmail.com",
+  "password": "admin123"
+}
+
+<> 2025-08-25T171632.200.json
+
+###
+
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+Content-Length: 61
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+
+{
+  "email": "mileidys@gmail.com",
+  "password": "admin123"
+}
+
+###
+
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+Content-Length: 61
+User-Agent: IntelliJ HTTP Client/IntelliJ IDEA 2025.2
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+
+{
+  "email": "mileidys@gmail.com",
+  "password": "admin123"
+}
+
+<> 2025-08-25T154218.200.json
+
+###
+

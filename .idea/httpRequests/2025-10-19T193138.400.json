@@ -1,0 +1,5 @@
+{
+  "error": "could not execute statement [ERROR: null value in column \"last_name\" of relation \"users\" violates not-null constraint\n  Detail: Failing row contains (4, t, carlos@gmail.com, null, Carlos Marrugo, $2a$10$o4ztaQoio8TLPiQDO/dKneH2Yo17E6FuRbmjgmu4dXYpjWZxqCuJG, VENDEDOR).] [insert into users (active,email,last_name,name,password,role) values (?,?,?,?,?,?)]; SQL [insert into users (active,email,last_name,name,password,role) values (?,?,?,?,?,?)]; constraint [last_name\" of relation \"users]",
+  "status": 400,
+  "timestamp": 1760920298504
+}
