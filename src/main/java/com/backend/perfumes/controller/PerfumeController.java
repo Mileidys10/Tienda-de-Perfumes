@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,7 +32,12 @@ import java.util.stream.Collectors;
 public class PerfumeController {
 
     @Autowired
-    private PerfumeService perfumeService;
+    private final PerfumeService perfumeService;
+
+    public PerfumeController(PerfumeService perfumeService) {
+        this.perfumeService = perfumeService;
+    }
+
 
     @Operation(summary = "Crear un nuevo perfume", description = "Solo disponible para administradores")
     @PostMapping("/nuevo")
@@ -76,6 +83,28 @@ public class PerfumeController {
         }
     }
 
+    @GetMapping
+    @Operation(summary = "Listar todos los Perfumes (con o sin filtro)")
+    public ResponseEntity<?> listarPerfume(
+            Pageable pageable,
+            @RequestParam(required = false) String filtro) {
+
+        Page<Perfume> perfumes = perfumeService.listarPerfume(pageable, filtro);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "data", perfumes.getContent(),
+                "meta", Map.of(
+                        "total", perfumes.getTotalElements(),
+                        "page", perfumes.getNumber(),
+                        "size", perfumes.getSize()
+                )
+        ));
+    }
+
+
+    //actualizar
+    //eliminar
     private PerfumeDTO convertToDto(Perfume perfume) {
         PerfumeDTO dto = new PerfumeDTO();
         dto.setName(perfume.getName());

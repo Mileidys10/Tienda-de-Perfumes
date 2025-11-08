@@ -8,6 +8,8 @@ import com.backend.perfumes.repositories.BrandRepository;
 import com.backend.perfumes.repositories.CategoryRepository;
 import com.backend.perfumes.repositories.PerfumeRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,7 +29,6 @@ public class PerfumeService {
 
     @Transactional
     public Perfume savePerfume(PerfumeDTO dto, String username) {
-
         Perfume perfume = new Perfume();
         perfume.setName(dto.getName());
         perfume.setDescription(dto.getDescription());
@@ -47,4 +48,9 @@ public class PerfumeService {
 
         return perfumeRepository.save(perfume);
     }
+
+    public Page<Perfume> listarPerfume(Pageable pageable, String filtro) {
+        return perfumeRepository.findByFiltro(filtro, pageable);
+    }
+
 }
