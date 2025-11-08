@@ -43,7 +43,6 @@ public class User implements UserDetails, Serializable {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 
-    // Constructor usado en tests (sin "active")
     public User(String name, String lastName, String email, String password, Role role) {
         this.name = name;
         this.lastName = lastName;
@@ -57,7 +56,6 @@ public class User implements UserDetails, Serializable {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + this.role.name()));
     }
-
 
     @Override
     public String getUsername() {

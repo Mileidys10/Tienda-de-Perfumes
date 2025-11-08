@@ -43,4 +43,6 @@ public class PerfumeDTO {
 
     @NotNull(message = "Debe especificar una categoría válida (categoryId)")
     private Long categoryId;
+
+
 }

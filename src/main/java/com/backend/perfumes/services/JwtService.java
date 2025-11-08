@@ -1,4 +1,6 @@
 package com.backend.perfumes.services;
+
+import com.backend.perfumes.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -16,6 +18,7 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+
     @Value("${app.jwt.secret}")
     private String secretKey;
 
@@ -35,7 +38,7 @@ public class JwtService {
                 .getBody();
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver){
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
@@ -57,20 +60,18 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    public String generateToken(Map<String, Object> extraClaims, User user) {
         if (extraClaims == null) {
             extraClaims = new HashMap<>();
         }
-        if (!extraClaims.containsKey("roles")) {
-            var roles = userDetails.getAuthorities().stream()
-                    .map(auth -> auth.getAuthority())
-                    .toList();
-            extraClaims.put("roles", roles);
-        }
+
+        extraClaims.putIfAbsent("id", user.getId());
+        extraClaims.putIfAbsent("email", user.getEmail());
+        extraClaims.putIfAbsent("rol", user.getRole().name());
 
         return Jwts.builder()
                 .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername())
+                .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -78,12 +79,12 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("username", userDetails.getUsername());
+        return generateToken(extraClaims, (User) userDetails);
     }
-
 
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
     }
-
 }

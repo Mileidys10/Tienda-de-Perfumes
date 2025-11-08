@@ -6,6 +6,8 @@ import com.backend.perfumes.services.UserDetailService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,7 +19,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -27,13 +28,10 @@ public class SecurityConfig {
 
     private final JwtService jwtService;
     private final UserDetailService userDetailService;
-    private final CorsConfigurationSource corsConfigurationSource;
 
-    public SecurityConfig(JwtService jwtService, UserDetailService userDetailService,
-                          CorsConfigurationSource corsConfigurationSource) {
+    public SecurityConfig(JwtService jwtService, UserDetailService userDetailService) {
         this.jwtService = jwtService;
         this.userDetailService = userDetailService;
-        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -41,7 +39,7 @@ public class SecurityConfig {
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailService);
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
@@ -50,18 +48,27 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/perfumes/nueva").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                // Asegurarnos de que el filtro JWT corra antes que el filtro por defecto de username/password
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authenticationManagerBuilder =
+                http.getSharedObject(AuthenticationManagerBuilder.class);
+        authenticationManagerBuilder
+                .userDetailsService(userDetailService)
+                .passwordEncoder(passwordEncoder());
+        return authenticationManagerBuilder.build();
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        configuration.setAllowedOrigins(List.of("http://localhost:8100"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
@@ -71,7 +78,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {

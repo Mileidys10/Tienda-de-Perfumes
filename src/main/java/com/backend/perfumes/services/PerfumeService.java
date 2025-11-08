@@ -41,11 +41,11 @@ public class PerfumeService {
             throw new IllegalArgumentException("El tamaño debe ser al menos 1 ml");
         }
 
-        Brand brand = brandRepository.findById(dto.getBrandId())
-                .orElseThrow(() -> new EntityNotFoundException("Marca no encontrada con ID: " + dto.getBrandId()));
+        /*Brand brand = brandRepository.findById(dto.getBrandId())
+                .orElseThrow(() -> new EntityNotFoundException("Marca no encontrada con ID: " + dto.getBrandId()));*/
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + dto.getCategoryId()));
+        /*Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + dto.getCategoryId()));*/
 
         Perfume perfume = new Perfume();
         perfume.setName(dto.getName());
@@ -55,8 +55,8 @@ public class PerfumeService {
         perfume.setSize_ml(dto.getSizeMl());
         perfume.setGenre(dto.getGenre());
         perfume.setRelease_date(dto.getReleaseDate());
-        perfume.setBrand(brand);
-        perfume.setCategory(category);
+        //perfume.setBrand(dto.getBrandId());
+        //perfume.setCategory(dto.getCategoryId());
 
         return perfumeRepository.save(perfume);
     }
