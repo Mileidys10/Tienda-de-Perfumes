@@ -23,4 +23,5 @@ public class Brand {
 
     @Column(nullable = false, name = "country_origin")
     private String countryOrigin;
+
 }

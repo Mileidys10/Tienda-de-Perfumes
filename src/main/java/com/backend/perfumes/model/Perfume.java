@@ -39,11 +39,11 @@ public class Perfume {
     @Column(nullable=false)
     private String release_date;
 
-    @ManyToOne(optional=false)
-    @JoinColumn(name = "brand_id")
+    @ManyToOne
+    @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
 
-    @ManyToOne(optional=false)
-    @JoinColumn(name = "category_id")
+    @ManyToOne
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 }

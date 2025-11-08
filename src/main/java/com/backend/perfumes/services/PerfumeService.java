@@ -7,7 +7,6 @@ import com.backend.perfumes.model.Perfume;
 import com.backend.perfumes.repositories.BrandRepository;
 import com.backend.perfumes.repositories.CategoryRepository;
 import com.backend.perfumes.repositories.PerfumeRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -27,25 +26,7 @@ public class PerfumeService {
     }
 
     @Transactional
-    public Perfume crearPerfume(PerfumeDTO dto, String username) {
-
-        if (dto.getPrice() <= 0) {
-            throw new IllegalArgumentException("El precio debe ser mayor que 0");
-        }
-
-        if (dto.getStock() < 0) {
-            throw new IllegalArgumentException("El stock no puede ser negativo");
-        }
-
-        if (dto.getSizeMl() < 1) {
-            throw new IllegalArgumentException("El tamaño debe ser al menos 1 ml");
-        }
-
-        /*Brand brand = brandRepository.findById(dto.getBrandId())
-                .orElseThrow(() -> new EntityNotFoundException("Marca no encontrada con ID: " + dto.getBrandId()));*/
-
-        /*Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + dto.getCategoryId()));*/
+    public Perfume savePerfume(PerfumeDTO dto, String username) {
 
         Perfume perfume = new Perfume();
         perfume.setName(dto.getName());
@@ -55,8 +36,14 @@ public class PerfumeService {
         perfume.setSize_ml(dto.getSizeMl());
         perfume.setGenre(dto.getGenre());
         perfume.setRelease_date(dto.getReleaseDate());
-        //perfume.setBrand(dto.getBrandId());
-        //perfume.setCategory(dto.getCategoryId());
+
+        Brand brand = brandRepository.findById(dto.getBrandId())
+                .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada con id: " + dto.getBrandId()));
+        perfume.setBrand(brand);
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con id: " + dto.getCategoryId()));
+        perfume.setCategory(category);
 
         return perfumeRepository.save(perfume);
     }

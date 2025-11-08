@@ -57,7 +57,7 @@ public class PerfumeController {
         }
 
         try {
-            Perfume perfume = perfumeService.crearPerfume(dto, userDetails.getUsername());
+            Perfume perfume = perfumeService.savePerfume(dto, userDetails.getUsername());
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
