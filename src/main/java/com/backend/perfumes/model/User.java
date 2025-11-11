@@ -24,6 +24,9 @@ public class User implements UserDetails, Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(nullable = false, unique = true)
+    private String username;
+
     @Column(nullable = false)
     private String name;
 
@@ -49,7 +52,7 @@ public class User implements UserDetails, Serializable {
         this.email = email;
         this.password = password;
         this.role = role;
-        this.active = true; // por defecto
+        this.active = true;
     }
 
     @Override

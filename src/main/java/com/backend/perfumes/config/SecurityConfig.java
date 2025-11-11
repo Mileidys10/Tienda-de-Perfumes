@@ -45,7 +45,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/perfumes").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/perfumes/nueva").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/perfumes/mis-perfumes").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.POST, "/api/perfumes/nuevo").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/perfumes/**").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/perfumes/**").hasAnyRole("ADMIN", "VENDEDOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
