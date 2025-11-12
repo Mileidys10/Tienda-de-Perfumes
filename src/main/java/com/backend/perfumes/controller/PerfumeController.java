@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +41,7 @@ public class PerfumeController {
     @GetMapping
     public ResponseEntity<?> listarPerfumes(
             Pageable pageable,
-            @RequestParam(required = false) String filtro) {
+            @RequestParam(value = "filtro", required = false) String filtro) {
 
         Page<Perfume> perfumes = perfumeService.listarPerfume(pageable, filtro);
 
@@ -58,7 +59,6 @@ public class PerfumeController {
         ));
     }
 
-    @Operation(summary = "Crear un nuevo perfume", description = "Solo disponible para administradores y vendedores")
     @PostMapping("/nuevo")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<?> crearPerfume(
@@ -78,17 +78,20 @@ public class PerfumeController {
                     .body(Map.of(
                             "status", "error",
                             "message", "Errores de validación",
-                            "errors", errores
+                            "errors", errores,
+                            "timestamp", LocalDateTime.now()
                     ));
         }
 
         try {
             Perfume perfume = perfumeService.savePerfume(dto, userDetails.getUsername());
 
+            PerfumeDTO perfumeDTO = convertToDto(perfume);
+
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
             response.put("message", "Perfume creado exitosamente");
-            response.put("data", convertToDto(perfume));
+            response.put("data", perfumeDTO);
             response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -106,11 +109,13 @@ public class PerfumeController {
     @Operation(summary = "Listar perfumes del usuario autenticado")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<?> listarMisPerfumes(
-            Pageable pageable,
-            @RequestParam(required = false) String filtro,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size,
+            @RequestParam(value = "filtro", required = false) String filtro,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
+            Pageable pageable = PageRequest.of(page, size);
             Page<Perfume> perfumes = perfumeService.listarPerfumePorUsuario(
                     userDetails.getUsername(), pageable, filtro);
 
@@ -217,6 +222,13 @@ public class PerfumeController {
 
         if (perfume.getUser() != null) {
             dto.setCreador(perfume.getUser().getUsername());
+        }
+
+        if (perfume.getBrand() != null) {
+            dto.setBrandName(perfume.getBrand().getName());
+        }
+        if (perfume.getCategory() != null) {
+            dto.setCategoryName(perfume.getCategory().getName());
         }
 
         return dto;

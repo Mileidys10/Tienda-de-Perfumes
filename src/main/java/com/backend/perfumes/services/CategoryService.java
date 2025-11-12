@@ -18,6 +18,7 @@ public class CategoryService {
     }
 
     public Category crearCategory(Category category) {
+        category.setId(null);
         try {
             return categoryRepository.save(category);
         } catch (DataIntegrityViolationException e) {

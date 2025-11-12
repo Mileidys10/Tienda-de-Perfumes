@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -19,9 +20,24 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<Category> crearCategory(@RequestBody Category category) {
-        Category nueva = categoryService.crearCategory(category);
-        return ResponseEntity.ok(nueva);
+    public ResponseEntity<?> crearCategory(@RequestBody Category category) {
+        try {
+            Category nueva = categoryService.crearCategory(category);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Categoría creada exitosamente",
+                    "data", Map.of(
+                            "id", nueva.getId(),
+                            "name", nueva.getName(),
+                            "description", nueva.getDescription()
+                    )
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
     }
 
     @GetMapping
