@@ -57,6 +57,8 @@ public class AuthService {
         newUser.setRole(request.getRole() != null ? Role.valueOf(request.getRole()) : Role.CLIENTE);
         newUser.setActive(true);
 
+        newUser.setUsername(request.getEmail());
+
         return userRepository.save(newUser);
     }
 }

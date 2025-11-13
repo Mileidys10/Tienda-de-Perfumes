@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class PerfumeService {
 
@@ -52,6 +54,10 @@ public class PerfumeService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
         perfume.setUser(user);
 
+        if (perfume.getImageUrl() == null || perfume.getImageUrl().isEmpty()) {
+            perfume.setImageUrl("/uploads/default-perfume.jpg");
+        }
+
         return perfumeRepository.save(perfume);
     }
 
@@ -63,5 +69,19 @@ public class PerfumeService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
         return perfumeRepository.findByUserAndFiltro(user, filtro, pageable);
+    }
+
+    public List<Perfume> obtenerPerfumesPorMarcaYUsuario(Long brandId, String username, String filtro) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+
+        Brand brand = brandRepository.findByIdAndUser(brandId, user)
+                .orElseThrow(() -> new RuntimeException("Marca no encontrada o no pertenece al usuario"));
+
+        if (filtro != null && !filtro.trim().isEmpty()) {
+            return perfumeRepository.findByBrandAndUserWithFiltro(brandId, user, filtro);
+        } else {
+            return perfumeRepository.findByBrandIdAndUser(brandId, user);
+        }
     }
 }
