@@ -4,6 +4,7 @@ import com.backend.perfumes.dto.LoginRequest;
 import com.backend.perfumes.dto.RegiterDto;
 import com.backend.perfumes.model.User;
 import com.backend.perfumes.services.AuthService;
+import com.backend.perfumes.services.EmailService;
 import com.backend.perfumes.services.JwtService;
 import com.backend.perfumes.utils.AuthReponseBuilder;
 import com.backend.perfumes.utils.ErrorReponseBuilder;
@@ -29,11 +30,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService) {
+    public AuthController(AuthService authService, JwtService jwtService, EmailService emailService) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 
     @Operation(
@@ -101,4 +104,24 @@ public class AuthController {
                     .body(ErrorReponseBuilder.buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST));
         }
     }
+    @Operation(summary = "Verificacion de correo", description = "comprueba  si el usuario esta verificado o no")
+    @ApiResponse(responseCode = "201", description = "Usuario verificado")
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyAccount(@RequestParam("token") String token) {
+        try {
+            String result = authService.verifyAccount(token);
+            return ResponseEntity.ok(Map.of("message", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/send-test-email")
+    public ResponseEntity<String> sendTestEmail(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        emailService.sendVerificationEmail(email, "12345");
+        return ResponseEntity.ok("Correo enviado a " + email);
+    }
+
+
 }
