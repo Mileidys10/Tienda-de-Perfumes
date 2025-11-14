@@ -116,12 +116,36 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/send-test-email")
-    public ResponseEntity<String> sendTestEmail(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        emailService.sendVerificationEmail(email, "12345");
-        return ResponseEntity.ok("Correo enviado a " + email);
+
+    @Operation(summary = "Solicitud de eliminación de cuenta",
+            description = "Envía un correo con un enlace para confirmar la eliminación de la cuenta")
+    @ApiResponse(responseCode = "200", description = "Correo enviado")
+    @PostMapping("/request-delete")
+    public ResponseEntity<?> requestDeletion(@RequestParam("email") String email) {
+        try {
+            String result = authService.requestDeletion(email);
+            return ResponseEntity.ok(Map.of("message", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
+
+
+
+    @Operation(summary = "Eliminacion de cuenta ", description = "elimina la cuenta si el token es correcto")
+    @ApiResponse(responseCode = "201", description = "Usuario eliminado")
+@DeleteMapping("/delete-account")
+public ResponseEntity<?> deleteAccount(@RequestParam("token") String token) {
+
+    try {
+        String result = authService.verifyToken(token);
+        return ResponseEntity.ok(Map.of("message", result));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+
+}
+
 
 
 }

@@ -47,6 +47,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/auth/send-test-email").permitAll()
                         .requestMatchers("/api/auth/verify/**").permitAll()
+                        .requestMatchers("/api/auth/delete-account/**").permitAll()
+                        .requestMatchers("/api/auth/request-delete/**").permitAll()
+
                         .requestMatchers("/api/upload/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

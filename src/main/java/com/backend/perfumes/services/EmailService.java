@@ -28,7 +28,21 @@ public class EmailService {
     }
 
 
+public void sendDeletionEmail (String to,String token){
+    String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+    String subject = "COnfirme la eliminacion de su cuenta";
+    String body = "Haz clic en el siguiente enlace para eliminar su cuenta :\n\n" + verificationUrl;
 
+
+
+
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setTo(to);
+    message.setSubject(subject);
+    message.setText(body);
+
+    mailSender.send(message);
+}
 
 
 

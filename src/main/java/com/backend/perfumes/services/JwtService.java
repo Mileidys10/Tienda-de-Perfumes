@@ -99,6 +99,43 @@ public class JwtService {
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
+
+
+    public String generateDeleteAccountToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", user.getId());
+        claims.put("email", user.getEmail());
+        claims.put("type", "delete");
+
+        long expiration = 10 * 60 * 1000; // 10 minutos
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getEmail())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    public boolean isDeleteToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return "delete".equals(claims.get("type"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+
+
+
+
+
+
     public boolean isVerificationToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
