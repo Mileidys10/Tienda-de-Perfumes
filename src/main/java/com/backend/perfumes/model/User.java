@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -23,6 +24,23 @@ public class User implements UserDetails, Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
+
+    @Column(name = "pending_email")
+    private String pendingEmail;
+
+    @Column(name = "email_update_code")
+    private String emailUpdateCode; // hashed OTP
+
+    @Column(name = "email_update_code_expiry")
+    private LocalDateTime emailUpdateCodeExpiry;
+
+
+
+
+
+
+
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -142,4 +160,22 @@ public class User implements UserDetails, Serializable {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+
+
+    public String getPendingEmail() { return pendingEmail; }
+    public void setPendingEmail(String pendingEmail) { this.pendingEmail = pendingEmail; }
+
+    public String getEmailUpdateCode() { return emailUpdateCode; }
+    public void setEmailUpdateCode(String emailUpdateCode) { this.emailUpdateCode = emailUpdateCode; }
+
+    public LocalDateTime getEmailUpdateCodeExpiry() { return emailUpdateCodeExpiry; }
+    public void setEmailUpdateCodeExpiry(LocalDateTime emailUpdateCodeExpiry) { this.emailUpdateCodeExpiry = emailUpdateCodeExpiry; }
+
+
+
+
+
+
+
 }

@@ -85,19 +85,6 @@ public class AuthService {
     }
 
 
-    public String requestDeletion( String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        String token = jwtService.generateDeleteAccountToken(user);
-        emailService.sendDeletionEmail(email, token);
-        return "Solicitud de eliminar Correo enviada";
-    }
-
-
-
-
-
 
 
     public String verifyAccount(String token) {
@@ -116,28 +103,6 @@ public class AuthService {
 
         return "Cuenta verificada con éxito";
     }
-
-
-public String verifyToken(String token) {
-    if (!jwtService.isDeleteToken(token)) {
-        throw new RuntimeException("Token invalido");
-
-    }
-
-    Claims claims = jwtService.extractAllClaims(token);
-    Long userId = claims.get("id", Long.class);
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-
-    userRepository.delete(user);
-
-
-        return "Usuario eliminado con exito";
-
-
-
-}
 
 
 

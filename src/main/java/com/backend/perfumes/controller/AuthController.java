@@ -3,9 +3,11 @@ package com.backend.perfumes.controller;
 import com.backend.perfumes.dto.LoginRequest;
 import com.backend.perfumes.dto.RegiterDto;
 import com.backend.perfumes.model.User;
+import com.backend.perfumes.repositories.UserRepository;
 import com.backend.perfumes.services.AuthService;
 import com.backend.perfumes.services.EmailService;
 import com.backend.perfumes.services.JwtService;
+import com.backend.perfumes.services.UserService;
 import com.backend.perfumes.utils.AuthReponseBuilder;
 import com.backend.perfumes.utils.ErrorReponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,14 +31,16 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+
     private final JwtService jwtService;
     private final EmailService emailService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService, EmailService emailService) {
+    public AuthController(AuthService authService, JwtService jwtService, EmailService emailService ) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.emailService = emailService;
+
     }
 
     @Operation(
@@ -117,34 +121,7 @@ public class AuthController {
     }
 
 
-    @Operation(summary = "Solicitud de eliminación de cuenta",
-            description = "Envía un correo con un enlace para confirmar la eliminación de la cuenta")
-    @ApiResponse(responseCode = "200", description = "Correo enviado")
-    @PostMapping("/request-delete")
-    public ResponseEntity<?> requestDeletion(@RequestParam("email") String email) {
-        try {
-            String result = authService.requestDeletion(email);
-            return ResponseEntity.ok(Map.of("message", result));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
 
-
-
-    @Operation(summary = "Eliminacion de cuenta ", description = "elimina la cuenta si el token es correcto")
-    @ApiResponse(responseCode = "201", description = "Usuario eliminado")
-@DeleteMapping("/delete-account")
-public ResponseEntity<?> deleteAccount(@RequestParam("token") String token) {
-
-    try {
-        String result = authService.verifyToken(token);
-        return ResponseEntity.ok(Map.of("message", result));
-    } catch (Exception e) {
-        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-    }
-
-}
 
 
 
