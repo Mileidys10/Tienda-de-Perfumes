@@ -42,6 +42,14 @@ public class PerfumeService {
         perfume.setGenre(dto.getGenre());
         perfume.setReleaseDate(dto.getReleaseDate());
 
+        if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
+            perfume.setImageUrl(dto.getImageUrl());
+        } else {
+            perfume.setImageUrl("/uploads/default-perfume.jpg");
+        }
+
+        System.out.println("🖼️ DEBUG - Setting image URL: " + perfume.getImageUrl());
+
         Brand brand = brandRepository.findById(dto.getBrandId())
                 .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada con id: " + dto.getBrandId()));
         perfume.setBrand(brand);
@@ -53,10 +61,6 @@ public class PerfumeService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
         perfume.setUser(user);
-
-        if (perfume.getImageUrl() == null || perfume.getImageUrl().isEmpty()) {
-            perfume.setImageUrl("/uploads/default-perfume.jpg");
-        }
 
         return perfumeRepository.save(perfume);
     }

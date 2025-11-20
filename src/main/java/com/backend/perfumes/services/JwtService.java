@@ -14,6 +14,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -82,66 +83,32 @@ public class JwtService {
         return jwtExpirationMs;
     }
 
-
     public String generateVerificationToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
-        claims.put("email", user.getEmail());
-        claims.put("type", "verification");
-
-        long expiration = 15 * 60 * 1000;
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(user.getEmail())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
+        return UUID.randomUUID().toString();
     }
-
-
 
     public String generateDeleteAccountToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
-        claims.put("email", user.getEmail());
-        claims.put("type", "delete");
-
-        long expiration = 10 * 60 * 1000; // 10 minutos
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(user.getEmail())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
+        return "del_" + UUID.randomUUID().toString();
     }
-
-
-
-
 
     public boolean isDeleteToken(String token) {
-        try {
-            Claims claims = extractAllClaims(token);
-            return "delete".equals(claims.get("type"));
-        } catch (Exception e) {
-            return false;
-        }
+        return token != null && token.startsWith("del_");
     }
-
-
 
     public boolean isVerificationToken(String token) {
+        return token != null && !token.startsWith("del_");
+    }
+
+    public boolean isValidUUID(String token) {
         try {
-            Claims claims = extractAllClaims(token);
-            return "verification".equals(claims.get("type"));
-        } catch (Exception e) {
+            if (token.startsWith("del_")) {
+                UUID.fromString(token.substring(4));
+            } else {
+                UUID.fromString(token);
+            }
+            return true;
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }
-
 }
-

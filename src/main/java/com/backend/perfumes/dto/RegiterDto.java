@@ -1,14 +1,14 @@
 package com.backend.perfumes.dto;
 
+import lombok.Data;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 public class RegiterDto {
+    @NotBlank(message = "El nombre de usuario es obligatorio")
+    private String username;
 
     @NotBlank(message = "El nombre es obligatorio")
     private String name;
@@ -16,17 +16,23 @@ public class RegiterDto {
     @NotBlank(message = "El apellido es obligatorio")
     private String lastName;
 
-
-    @NotBlank(message = "El correo es obligatorio")
-    @Email(message = "El correo no tiene un formato válido")
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String password;
 
-    @NotBlank(message = "El rol es obligatorio (ADMIN, VENDEDOR o CLIENTE)")
     private String role;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getName() {
         return name;

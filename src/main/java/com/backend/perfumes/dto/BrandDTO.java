@@ -9,10 +9,8 @@ public class BrandDTO {
     private String name;
     private String description;
     private String countryOrigin;
+    private String imageUrl;
     private String creador;
     private List<PerfumeDTO> perfumes;
     private Integer totalPerfumes;
-    private String imageUrl;
-
-
 }

@@ -220,6 +220,11 @@ public class PerfumeController {
         dto.setBrandId(perfume.getBrand().getId());
         dto.setCategoryId(perfume.getCategory().getId());
 
+        dto.setImageUrl(perfume.getImageUrl());
+
+        System.out.println("🖼️ DEBUG - Perfume ID: " + perfume.getId() +
+                ", Image URL from DB: " + perfume.getImageUrl());
+
         if (perfume.getUser() != null) {
             dto.setCreador(perfume.getUser().getUsername());
         }
