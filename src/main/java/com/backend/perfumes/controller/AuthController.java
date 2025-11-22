@@ -117,9 +117,9 @@ public class AuthController {
     @Operation(summary = "Verificación de correo", description = "Verifica la cuenta de usuario mediante token")
     @ApiResponse(responseCode = "200", description = "Cuenta verificada exitosamente")
     @GetMapping("/verify")
-    public ResponseEntity<?> verifyAccount(@RequestParam("token") String token) {
+    public ResponseEntity<?> verifyAccount(@RequestParam("code") String token) {
         try {
-            String result = authService.verifyAccount(token);
+            String result = authService.verifyAccount("code");
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", result
@@ -150,41 +150,7 @@ public class AuthController {
         }
     }
 
-    @Operation(summary = "Solicitar eliminación de cuenta", description = "Envía un email para confirmar la eliminación de cuenta")
-    @ApiResponse(responseCode = "200", description = "Email de eliminación enviado")
-    @PostMapping("/request-delete")
-    public ResponseEntity<?> requestAccountDeletion(@RequestParam String email) {
-        try {
-            String result = authService.requestAccountDeletion(email);
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", result
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-            ));
-        }
-    }
 
-    @Operation(summary = "Eliminar cuenta", description = "Elimina la cuenta usando el token de confirmación")
-    @ApiResponse(responseCode = "200", description = "Cuenta eliminada exitosamente")
-    @DeleteMapping("/delete-account")
-    public ResponseEntity<?> deleteAccount(@RequestParam String token) {
-        try {
-            String result = authService.deleteAccount(token);
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", result
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-            ));
-        }
-    }
 
     @Operation(summary = "Enviar email de prueba", description = "Endpoint para probar el servicio de email")
     @PostMapping("/send-test-email")

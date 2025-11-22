@@ -3,8 +3,6 @@ package com.backend.perfumes.services;
 import com.backend.perfumes.model.User;
 import com.backend.perfumes.repositories.UserRepository;
 import io.jsonwebtoken.Claims;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +13,6 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    private final JwtService  jwtService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final int otpExpiryMinutes = 10;
@@ -27,7 +24,6 @@ public class UserService {
                        PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
 
@@ -43,9 +39,17 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String token = jwtService.generateDeleteAccountToken(user);
-        emailService.sendDeletionEmail(email, token);
-        return "Solicitud de eliminar Usuario enviada";
+        String code = generateOtp();
+        String hashed = passwordEncoder.encode(code);
+
+        user.setDeletionCode(hashed);
+        user.setDeletionCodeExpiry(LocalDateTime.now().plusMinutes(otpExpiryMinutes));
+
+        userRepository.save(user);
+
+        emailService.sendDeletionEmail(email, code);
+
+        return "Código de verificación enviado al correo.";
     }
 
 
@@ -105,26 +109,34 @@ public class UserService {
 
 
 
-    public String verifyToken(String token) {
-        if (!jwtService.isDeleteToken(token)) {
-            throw new RuntimeException("Token invalido");
+    public String ConfirmDeleteUser(String code) {
 
+        User user = userRepository.findByDeletionCodeIsNotNull()
+                .orElseThrow(() -> new RuntimeException("No hay solicitudes de eliminación pendientes"));
+
+        if (user.getDeletionCodeExpiry().isBefore(LocalDateTime.now())) {
+            clearDeletionFields(user);
+            userRepository.save(user);
+            throw new RuntimeException("Código expirado");
         }
 
-        Claims claims = jwtService.extractAllClaims(token);
-        Long userId = claims.get("id", Long.class);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
+        if (!passwordEncoder.matches(code, user.getDeletionCode())) {
+            throw new RuntimeException("Código incorrecto");
+        }
 
         userRepository.delete(user);
 
-
-        return "Usuario eliminado con exito";
-
-
-
+        return "Usuario eliminado con éxito.";
     }
+
+    private void clearDeletionFields(User user) {
+        user.setDeletionCode(null);
+        user.setDeletionCodeExpiry(null);
+    }
+
+
+
+
 
 
 }

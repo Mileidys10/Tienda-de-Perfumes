@@ -12,16 +12,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
     Optional<User> findByUsername(String username);
+
     Optional<User> findByPendingEmail(String pendingEmail);
+
     Optional<User> findByPendingEmailIsNotNull();
+    Optional<User> findByDeletionCodeIsNotNull();
+    Optional <User>findByVerificationCodeIsNotNull();
     boolean existsByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.verificationToken = :token")
-    Optional<User> findByVerificationToken(@Param("token") String token);
+
 
     // Buscar usuarios con email no verificado
     @Query("SELECT u FROM User u WHERE u.emailVerified = false")
     java.util.List<User> findUnverifiedUsers();
+
+
 
 }

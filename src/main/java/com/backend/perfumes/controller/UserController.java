@@ -23,10 +23,10 @@ public class UserController {
     }
 
     @Operation(summary = "Solicitud de eliminación de cuenta",
-            description = "Envía un correo con un enlace para confirmar la eliminación de la cuenta")
+            description = "Envía un correo con un codigo para confirmar la eliminación de la cuenta")
     @ApiResponse(responseCode = "200", description = "Correo enviado")
     @PostMapping("/request-delete")
-    public ResponseEntity<?> requestDeletion(@RequestParam("email") String email) {
+    public ResponseEntity<?> requestDelete(@RequestParam("email") String email) {
         try {
             String result = userService.requestDeletion(email);
             return ResponseEntity.ok(Map.of("message", result));
@@ -36,7 +36,7 @@ public class UserController {
     }
 
     @Operation(summary = "Solicitud de cambio de correo",
-            description = "Envía un correo con un enlace para confirmar el cambio de correo de la cuenta")
+            description = "Envía un correo con un codigo para confirmar el cambio de correo de la cuenta")
     @ApiResponse(responseCode = "200", description = "Correo enviado")
     @PostMapping("/request-update-email")
     public ResponseEntity<?> requestUpdate(@AuthenticationPrincipal UserDetails user,
@@ -50,18 +50,16 @@ public class UserController {
     }
 
 
-    @Operation(summary = "Eliminacion de cuenta ", description = "elimina la cuenta si el token es correcto")
+    @Operation(summary = "Eliminacion de cuenta ", description = "elimina la cuenta si el codigo es correcto")
     @ApiResponse(responseCode = "202", description = "Usuario eliminado")
-    @DeleteMapping("/delete-account")
-    public ResponseEntity<?> deleteAccount(@RequestParam("token") String token) {
-
+    @PostMapping("/confirm-delete")
+    public ResponseEntity<?> confirmDelete(@RequestParam("code") String code) {
         try {
-            String result = userService.verifyToken(token);
+            String result = userService.ConfirmDeleteUser(code);
             return ResponseEntity.ok(Map.of("message", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
     }
     @Operation(summary = "Confirmacion cambio de correo",
             description = "Verifica que el codigo sea correcto y cambia el correo del usuario ")
