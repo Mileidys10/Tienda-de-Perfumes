@@ -53,13 +53,17 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/perfumes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/perfumes/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/perfumes/public/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/perfumes/buscar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/brands").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/brands/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/brands/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/brands/public/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/brands/check").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/{id}").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/categories/public").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
                         .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
@@ -102,7 +106,6 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of("http://localhost:8100"));
-        configuration.setAllowedOrigins(List.of("http://localhost:8102"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));

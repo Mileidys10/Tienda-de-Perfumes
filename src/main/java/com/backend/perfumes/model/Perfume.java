@@ -1,5 +1,6 @@
 package com.backend.perfumes.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "perfumes")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Perfume {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
