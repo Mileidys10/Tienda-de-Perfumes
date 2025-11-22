@@ -1,10 +1,6 @@
 package com.backend.perfumes.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -15,15 +11,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
 public class User implements UserDetails, Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "pending_email")
     private String pendingEmail;
@@ -65,24 +57,147 @@ public class User implements UserDetails, Serializable {
     @Column(name = "verification_token_expiry")
     private LocalDateTime verificationTokenExpiry;
 
+    public User() {
+    }
+
     public User(String name, String lastName, String email, String password, Role role) {
         this.name = name;
         this.lastName = lastName;
         this.email = email;
+        this.username = email.split("@")[0];
         this.password = password;
         this.role = role;
         this.active = true;
         this.emailVerified = false;
     }
 
+    public User(String name, String lastName, String email, String password, String role) {
+        this.name = name;
+        this.lastName = lastName;
+        this.email = email;
+        this.username = email.split("@")[0];
+        this.password = password;
+        this.role = Role.valueOf(role.toUpperCase());
+        this.active = true;
+        this.emailVerified = false;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPendingEmail() {
+        return pendingEmail;
+    }
+
+    public void setPendingEmail(String pendingEmail) {
+        this.pendingEmail = pendingEmail;
+    }
+
+    public String getEmailUpdateCode() {
+        return emailUpdateCode;
+    }
+
+    public void setEmailUpdateCode(String emailUpdateCode) {
+        this.emailUpdateCode = emailUpdateCode;
+    }
+
+    public LocalDateTime getEmailUpdateCodeExpiry() {
+        return emailUpdateCodeExpiry;
+    }
+
+    public void setEmailUpdateCodeExpiry(LocalDateTime emailUpdateCodeExpiry) {
+        this.emailUpdateCodeExpiry = emailUpdateCodeExpiry;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public LocalDateTime getVerificationTokenExpiry() {
+        return verificationTokenExpiry;
+    }
+
+    public void setVerificationTokenExpiry(LocalDateTime verificationTokenExpiry) {
+        this.verificationTokenExpiry = verificationTokenExpiry;
+    }
+
+    // UserDetails methods
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + this.role.name()));
-    }
-
-    @Override
-    public String getUsername() {
-        return this.username;
     }
 
     @Override
@@ -103,5 +218,19 @@ public class User implements UserDetails, Serializable {
     @Override
     public boolean isEnabled() {
         return this.active && this.emailVerified;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", username='" + username + '\'' +
+                ", role=" + role +
+                ", active=" + active +
+                ", emailVerified=" + emailVerified +
+                '}';
     }
 }

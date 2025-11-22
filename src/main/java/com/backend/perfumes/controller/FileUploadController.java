@@ -57,7 +57,7 @@ public class FileUploadController {
                     "status", "success",
                     "message", "Imagen subida exitosamente",
                     "filePath", filePath,
-                    "fileUrl", fullImageUrl, // URL COMPLETA para el frontend
+                    "fileUrl", fullImageUrl,
                     "fileName", file.getOriginalFilename()
             ));
 

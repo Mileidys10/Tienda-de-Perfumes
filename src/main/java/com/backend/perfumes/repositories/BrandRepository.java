@@ -1,6 +1,7 @@
 package com.backend.perfumes.repositories;
 
 import com.backend.perfumes.model.Brand;
+import com.backend.perfumes.model.ModerationStatus;
 import com.backend.perfumes.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,14 +15,22 @@ import java.util.Optional;
 public interface BrandRepository extends JpaRepository<Brand, Long> {
 
     List<Brand> findByUser(User user);
+    List<Brand> findByModerationStatus(ModerationStatus status);
 
     Optional<Brand> findByIdAndUser(Long id, User user);
+    Optional<Brand> findByIdAndModerationStatus(Long id, ModerationStatus status);
 
     @Query("SELECT b FROM Brand b WHERE b.user = :user AND " +
             "(:filtro IS NULL OR " +
             "LOWER(b.name) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
             "LOWER(b.description) LIKE LOWER(CONCAT('%', :filtro, '%')))")
     List<Brand> findByUserAndFiltro(@Param("user") User user, @Param("filtro") String filtro);
+
+    @Query("SELECT b FROM Brand b WHERE b.moderationStatus = :status AND " +
+            "(:filtro IS NULL OR " +
+            "LOWER(b.name) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
+            "LOWER(b.description) LIKE LOWER(CONCAT('%', :filtro, '%')))")
+    List<Brand> findByModerationStatusAndFiltro(@Param("status") ModerationStatus status, @Param("filtro") String filtro);
 
     boolean existsByName(String name);
 }

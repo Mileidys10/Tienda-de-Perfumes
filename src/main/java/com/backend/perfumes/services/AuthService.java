@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -45,7 +46,7 @@ public class AuthService {
             );
 
             User user = (User) authentication.getPrincipal();
-            System.out.println("Usuario autenticado: " + user.getUsername());
+            System.out.println("Usuario autenticado: " + user.getEmail());
             System.out.println("Email verificado: " + user.isEmailVerified());
             System.out.println("Cuenta activa: " + user.isActive());
 
@@ -76,36 +77,53 @@ public class AuthService {
     public User register(RegiterDto request) {
         System.out.println("=== INICIANDO REGISTRO ===");
         System.out.println("Email: " + request.getEmail());
-        System.out.println("Username: " + request.getUsername());
+        System.out.println("Nombre: " + request.getName());
+        System.out.println("Apellido: " + request.getLastName());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("El email ya está registrado");
-        }
-
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("El nombre de usuario ya está en uso");
         }
 
         User newUser = new User();
         newUser.setName(request.getName());
         newUser.setLastName(request.getLastName());
         newUser.setEmail(request.getEmail());
-        newUser.setUsername(request.getUsername());
+
+        String autoUsername = request.getEmail().split("@")[0];
+        newUser.setUsername(autoUsername);
+
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-        newUser.setRole(request.getRole() != null ? Role.valueOf(request.getRole()) : Role.CLIENTE);
+
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            try {
+                newUser.setRole(Role.valueOf(request.getRole().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                newUser.setRole(Role.CLIENTE);
+            }
+        } else {
+            newUser.setRole(Role.CLIENTE);
+        }
 
         newUser.setActive(true);
         newUser.setEmailVerified(false);
 
-        String verificationToken = jwtService.generateVerificationToken(newUser);
+        String verificationToken = UUID.randomUUID().toString();
         newUser.setVerificationToken(verificationToken);
         newUser.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
 
         User savedUser = userRepository.save(newUser);
 
-        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
+        try {
+            emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
+            System.out.println("Email de verificación enviado a: " + savedUser.getEmail());
+        } catch (Exception e) {
+            System.err.println("Error enviando email de verificación: " + e.getMessage());
+        }
 
         System.out.println("=== REGISTRO EXITOSO ===");
+        System.out.println("Usuario ID: " + savedUser.getId());
+        System.out.println("Email: " + savedUser.getEmail());
+        System.out.println("Rol: " + savedUser.getRole());
         return savedUser;
     }
 
@@ -113,27 +131,21 @@ public class AuthService {
         System.out.println("=== VERIFICANDO CUENTA ===");
         System.out.println("Token recibido: " + token);
 
-        if (!jwtService.isValidUUID(token)) {
-            throw new RuntimeException("Token de verificación inválido");
-        }
-
         try {
-            // Buscar usuario por token de verificación
             User user = userRepository.findByVerificationToken(token)
                     .orElseThrow(() -> new RuntimeException("Token de verificación inválido o expirado"));
 
-            // Verificar si el token no ha expirado
             if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
                 throw new RuntimeException("El token de verificación ha expirado");
             }
 
-            // Marcar como verificado y limpiar token
             user.setEmailVerified(true);
             user.setVerificationToken(null);
             user.setVerificationTokenExpiry(null);
             userRepository.save(user);
 
             System.out.println("=== CUENTA VERIFICADA EXITOSAMENTE ===");
+            System.out.println("Usuario: " + user.getEmail());
             return "¡Cuenta verificada con éxito! Ya puedes iniciar sesión.";
 
         } catch (Exception e) {
@@ -150,8 +162,7 @@ public class AuthService {
             throw new RuntimeException("El email ya está verificado");
         }
 
-        // Generar nuevo token UUID
-        String newToken = jwtService.generateVerificationToken(user);
+        String newToken = UUID.randomUUID().toString();
         user.setVerificationToken(newToken);
         user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
         userRepository.save(user);
@@ -165,27 +176,36 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String deleteToken = jwtService.generateDeleteAccountToken(user);
+        String deleteToken = UUID.randomUUID().toString();
+
+        user.setVerificationToken(deleteToken);
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
         emailService.sendDeletionEmail(user.getEmail(), deleteToken);
 
         return "Se ha enviado un enlace de confirmación para eliminar tu cuenta a tu correo electrónico.";
     }
 
     public String deleteAccount(String token) {
-        if (!jwtService.isDeleteToken(token)) {
-            throw new RuntimeException("Token de eliminación inválido");
-        }
-
         try {
             // Buscar usuario por token de eliminación
             User user = userRepository.findByVerificationToken(token)
                     .orElseThrow(() -> new RuntimeException("Token de eliminación inválido o expirado"));
 
             userRepository.delete(user);
+
+            System.out.println("=== CUENTA ELIMINADA ===");
+            System.out.println("Usuario eliminado: " + user.getEmail());
             return "Cuenta eliminada exitosamente";
 
         } catch (Exception e) {
+            System.out.println("=== ERROR ELIMINANDO CUENTA: " + e.getMessage() + " ===");
             throw new RuntimeException("Error al eliminar la cuenta: " + e.getMessage());
         }
+    }
+
+    public boolean emailExists(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 }

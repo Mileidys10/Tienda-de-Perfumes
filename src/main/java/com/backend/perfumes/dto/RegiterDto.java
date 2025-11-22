@@ -1,15 +1,10 @@
 package com.backend.perfumes.dto;
 
-import lombok.Data;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Data
 public class RegiterDto {
-    @NotBlank(message = "El nombre de usuario es obligatorio")
-    private String username;
-
     @NotBlank(message = "El nombre es obligatorio")
     private String name;
 
@@ -26,14 +21,18 @@ public class RegiterDto {
 
     private String role;
 
-    public String getUsername() {
-        return username;
+    public RegiterDto() {
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public RegiterDto(String name, String lastName, String email, String password, String role) {
+        this.name = name;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.role = role;
     }
 
+    // Getters y setters
     public String getName() {
         return name;
     }
@@ -72,5 +71,16 @@ public class RegiterDto {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    @Override
+    public String toString() {
+        return "RegiterDto{" +
+                "name='" + name + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", password='[PROTECTED]'" +
+                ", role='" + role + '\'' +
+                '}';
     }
 }
