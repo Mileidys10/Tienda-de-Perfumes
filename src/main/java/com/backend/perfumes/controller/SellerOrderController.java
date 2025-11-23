@@ -1,4 +1,3 @@
-// SellerOrderController.java
 package com.backend.perfumes.controller;
 
 import com.backend.perfumes.model.Order;
@@ -9,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/seller/orders")
@@ -41,11 +43,7 @@ public class SellerOrderController {
 
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Order> orders = orderService.getSellerOrders(userDetails.getUsername(), pageable);
-
-            if (status != null) {
-                orders = (Page<Order>) orders.filter(order -> order.getStatus() == status);
-            }
+            Page<Order> orders = orderService.getSellerOrders(userDetails.getUsername(), pageable, status);
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");

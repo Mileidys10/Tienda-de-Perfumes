@@ -12,10 +12,8 @@ public class OrderItemDTO {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
 
-    // Constructor vacío
     public OrderItemDTO() {}
 
-    // Constructor con parámetros
     public OrderItemDTO(Long perfumeId, String perfumeName, String imageUrl,
                         Integer quantity, BigDecimal unitPrice, BigDecimal totalPrice) {
         this.perfumeId = perfumeId;
