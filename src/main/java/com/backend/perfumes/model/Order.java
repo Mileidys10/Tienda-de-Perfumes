@@ -22,6 +22,14 @@ public class Order {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "discount_id")
+    private Discount discount;
+
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
 

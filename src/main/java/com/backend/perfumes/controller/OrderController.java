@@ -64,6 +64,37 @@ public class OrderController {
         }
     }
 
+    @PostMapping("/confirm-payment")
+    @Operation(summary = "Confirmar pago exitoso (webhook)")
+    public ResponseEntity<?> confirmPayment(@RequestBody Map<String, String> request) {
+        try {
+            String paymentIntentId = request.get("paymentIntentId");
+            if (paymentIntentId == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "paymentIntentId es requerido",
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            orderService.confirmPayment(paymentIntentId);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Pago confirmado exitosamente",
+                    "timestamp", LocalDateTime.now()
+            ));
+
+        } catch (Exception e) {
+            log.error("Error confirmando pago: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
     @GetMapping("/my-orders")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener historial de órdenes del usuario")
@@ -156,13 +187,7 @@ public class OrderController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
-            // Esta endpoint sería llamado por el frontend después de un pago exitoso
-            // o por un webhook de Stripe
-
             log.info("Confirmación de pago recibida para orden: {}", orderNumber);
-
-            // Aquí iría la lógica para confirmar el pago y actualizar el estado de la orden
-            // Por ahora retornamos éxito
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",

@@ -2,6 +2,7 @@ package com.backend.perfumes.services;
 
 import com.backend.perfumes.model.User;
 import com.backend.perfumes.repositories.UserRepository;
+
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;

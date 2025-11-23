@@ -148,13 +148,11 @@ public class PerfumeController {
 
             if (status != null) {
                 perfumes = perfumeService.listarPerfumesPorEstado(status, pageable);
-                // Filtrar adicionalmente por usuario
                 perfumes = (Page<Perfume>) perfumes.filter(p -> p.getUser().getUsername().equals(userDetails.getUsername()));
             } else {
                 perfumes = perfumeService.listarPerfumePorUsuario(userDetails.getUsername(), pageable, filtro);
             }
 
-            // Estadísticas de moderación
             long totalAprobados = perfumes.getContent().stream().filter(p -> p.getModerationStatus() == ModerationStatus.APPROVED).count();
             long totalPendientes = perfumes.getContent().stream().filter(p -> p.getModerationStatus() == ModerationStatus.PENDING_REVIEW).count();
             long totalRechazados = perfumes.getContent().stream().filter(p -> p.getModerationStatus() == ModerationStatus.REJECTED).count();

@@ -189,7 +189,6 @@ public class AuthService {
 
     public String deleteAccount(String token) {
         try {
-            // Buscar usuario por token de eliminación
             User user = userRepository.findByVerificationToken(token)
                     .orElseThrow(() -> new RuntimeException("Token de eliminación inválido o expirado"));
 

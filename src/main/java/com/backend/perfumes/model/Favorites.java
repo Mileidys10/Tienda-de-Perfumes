@@ -5,9 +5,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reviews")
+@Table(name = "favorites", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "perfume_id"})
+})
 @Data
-public class Review {
+public class Favorites {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,27 +19,13 @@ public class Review {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id")
-    private Client client;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "perfume_id")
     private Perfume perfume;
 
-    private Integer rating;
-    private String comment;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime addedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        addedAt = LocalDateTime.now();
     }
 }

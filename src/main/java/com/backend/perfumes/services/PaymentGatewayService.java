@@ -2,11 +2,6 @@ package com.backend.perfumes.services;
 
 import com.backend.perfumes.dto.PaymentResponseDTO;
 import com.backend.perfumes.model.Order;
-import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
-import com.stripe.param.PaymentIntentCreateParams;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,101 +9,116 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
 public class PaymentGatewayService {
 
-    @Value("${stripe.secret.key:sk_test_123}")
-    private String stripeSecretKey;
-
     @Value("${app.frontend.url:http://localhost:8100}")
     private String frontendUrl;
 
-    @PostConstruct
-    public void init() {
-        Stripe.apiKey = stripeSecretKey;
-        log.info("Stripe configurado con clave: {}", stripeSecretKey.substring(0, 8) + "...");
-    }
+    private final Map<String, MockPayment> mockPayments = new ConcurrentHashMap<>();
 
     public PaymentResponseDTO createPayment(Order order, String paymentMethod) {
         try {
-            // Para testing, si es modo demo, simular respuesta
-            if (stripeSecretKey.equals("sk_test_123")) {
-                return createMockPaymentResponse(order);
-            }
+            String paymentId = "pi_mock_" + UUID.randomUUID().toString().substring(0, 8);
 
-            long amount = order.getTotal().multiply(BigDecimal.valueOf(100)).longValue();
+            MockPayment mockPayment = new MockPayment();
+            mockPayment.setId(paymentId);
+            mockPayment.setOrderId(order.getId());
+            mockPayment.setOrderNumber(order.getOrderNumber());
+            mockPayment.setAmount(order.getTotal());
+            mockPayment.setStatus("requires_payment_method");
+            mockPayment.setPaymentMethod(paymentMethod);
+            mockPayment.setCreatedAt(System.currentTimeMillis());
 
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amount)
-                    .setCurrency("usd")
-                    .setDescription("Orden #" + order.getOrderNumber())
-                    .putMetadata("orderId", order.getId().toString())
-                    .putMetadata("orderNumber", order.getOrderNumber())
-                    .setAutomaticPaymentMethods(
-                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                                    .setEnabled(true)
-                                    .build()
-                    )
-                    .build();
-
-            PaymentIntent paymentIntent = PaymentIntent.create(params);
+            mockPayments.put(paymentId, mockPayment);
 
             PaymentResponseDTO response = new PaymentResponseDTO();
-            response.setPaymentId(paymentIntent.getId());
-            response.setStatus(paymentIntent.getStatus());
-            response.setClientSecret(paymentIntent.getClientSecret());
-            response.setGatewayUrl(buildGatewayUrl(paymentIntent.getId()));
+            response.setPaymentId(paymentId);
+            response.setStatus("requires_payment_method");
+            response.setClientSecret("cs_mock_" + UUID.randomUUID().toString().substring(0, 8));
+            response.setGatewayUrl(buildGatewayUrl(paymentId));
+            response.setPaymentUrl(buildPaymentUrl(paymentId));
 
-            log.info("PaymentIntent creado para orden {}: {}", order.getOrderNumber(), paymentIntent.getId());
+            log.info("Payment simulado creado para orden {}: {}", order.getOrderNumber(), paymentId);
             return response;
 
-        } catch (StripeException e) {
-            log.error("Error creando PaymentIntent para orden {}", order.getOrderNumber(), e);
+        } catch (Exception e) {
+            log.error("Error creando pago simulado para orden {}", order.getOrderNumber(), e);
             throw new RuntimeException("Error al crear el pago: " + e.getMessage());
         }
-    }
-
-    private PaymentResponseDTO createMockPaymentResponse(Order order) {
-        PaymentResponseDTO response = new PaymentResponseDTO();
-        response.setPaymentId("pi_mock_" + System.currentTimeMillis());
-        response.setStatus("requires_payment_method");
-        response.setClientSecret("cs_mock_" + System.currentTimeMillis());
-        response.setGatewayUrl(frontendUrl + "/payment/success?order=" + order.getOrderNumber());
-
-        log.info("Respuesta mock de pago creada para orden: {}", order.getOrderNumber());
-        return response;
     }
 
     private String buildGatewayUrl(String paymentIntentId) {
         return frontendUrl + "/payment?payment_intent=" + paymentIntentId;
     }
 
+    private String buildPaymentUrl(String paymentIntentId) {
+        return "/api/payments/simulate-payment?payment_id=" + paymentIntentId;
+    }
+
     public boolean verifyPayment(String paymentIntentId) {
+        MockPayment payment = mockPayments.get(paymentIntentId);
+        return payment != null && "succeeded".equals(payment.getStatus());
+    }
+
+    public boolean simulatePayment(String paymentIntentId, boolean success) {
         try {
-            if (paymentIntentId.startsWith("pi_mock_")) {
-                return true; // En modo mock, siempre retorna éxito
+            MockPayment payment = mockPayments.get(paymentIntentId);
+            if (payment == null) {
+                return false;
             }
 
-            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
-            return "succeeded".equals(paymentIntent.getStatus());
-        } catch (StripeException e) {
-            log.error("Error verificando pago {}", paymentIntentId, e);
+            if (success) {
+                payment.setStatus("succeeded");
+                payment.setPaidAt(System.currentTimeMillis());
+                log.info("Pago simulado EXITOSO para: {}", paymentIntentId);
+            } else {
+                payment.setStatus("failed");
+                log.info("Pago simulado FALLIDO para: {}", paymentIntentId);
+            }
+
+            mockPayments.put(paymentIntentId, payment);
+            return true;
+
+        } catch (Exception e) {
+            log.error("Error simulando pago: {}", paymentIntentId, e);
             return false;
         }
     }
 
-    public PaymentIntent getPaymentIntent(String paymentIntentId) {
-        try {
-            if (paymentIntentId.startsWith("pi_mock_")) {
-                return null; // No hay PaymentIntent real en modo mock
-            }
+    public MockPayment getPayment(String paymentIntentId) {
+        return mockPayments.get(paymentIntentId);
+    }
 
-            return PaymentIntent.retrieve(paymentIntentId);
-        } catch (StripeException e) {
-            log.error("Error obteniendo PaymentIntent {}", paymentIntentId, e);
-            throw new RuntimeException("Error obteniendo información del pago");
-        }
+    public static class MockPayment {
+        private String id;
+        private Long orderId;
+        private String orderNumber;
+        private BigDecimal amount;
+        private String status;
+        private String paymentMethod;
+        private Long createdAt;
+        private Long paidAt;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public Long getOrderId() { return orderId; }
+        public void setOrderId(Long orderId) { this.orderId = orderId; }
+        public String getOrderNumber() { return orderNumber; }
+        public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getPaymentMethod() { return paymentMethod; }
+        public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+        public Long getCreatedAt() { return createdAt; }
+        public void setCreatedAt(Long createdAt) { this.createdAt = createdAt; }
+        public Long getPaidAt() { return paidAt; }
+        public void setPaidAt(Long paidAt) { this.paidAt = paidAt; }
     }
 }

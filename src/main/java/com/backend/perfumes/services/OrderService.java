@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
 
+    private final NotificationService notificationService;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
@@ -69,6 +70,48 @@ public class OrderService {
         return buildOrderResponse(savedOrder, paymentResponse);
     }
 
+    @Transactional
+    public void confirmPayment(String paymentId) {
+        try {
+            boolean paymentVerified = paymentGatewayService.verifyPayment(paymentId);
+
+            if (paymentVerified) {
+                // Buscar el pago en nuestra base de datos
+                Payment payment = paymentRepository.findByPaymentGatewayId(paymentId)
+                        .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+
+                Order order = payment.getOrder();
+
+                // Actualizar estado del pago
+                payment.setStatus(PaymentStatus.COMPLETED);
+                payment.setPaymentDate(LocalDateTime.now());
+                paymentRepository.save(payment);
+
+                // Actualizar estado de la orden
+                order.setStatus(OrderStatus.CONFIRMED);
+                orderRepository.save(order);
+
+                // Notificar al vendedor
+                if (notificationService != null) {
+                    notificationService.notifySellerNewOrder(order);
+                }
+
+                // Notificar al cliente
+                if (notificationService != null) {
+                    notificationService.notifyOrderStatusUpdate(order, order.getUser().getUsername());
+                }
+
+                log.info("Pago confirmado y orden {} actualizada a CONFIRMED", order.getOrderNumber());
+            } else {
+                throw new RuntimeException("Pago no verificado");
+            }
+
+        } catch (Exception e) {
+            log.error("Error confirmando pago: {}", e.getMessage());
+            throw new RuntimeException("Error confirmando pago: " + e.getMessage());
+        }
+    }
+
     private OrderCalculationResult calculateOrderTotals(List<CartItemDTO> cartItems) {
         if (cartItems == null || cartItems.isEmpty()) {
             throw new RuntimeException("El carrito está vacío");
@@ -90,7 +133,8 @@ public class OrderService {
                 throw new RuntimeException("Cantidad inválida para: " + perfume.getName());
             }
 
-            BigDecimal itemTotal = perfume.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            BigDecimal perfumePrice = BigDecimal.valueOf(perfume.getPrice());
+            BigDecimal itemTotal = perfumePrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             subtotal = subtotal.add(itemTotal);
 
             calculatedItems.add(new OrderItemCalculation(perfume, cartItem.getQuantity(), itemTotal));
@@ -109,12 +153,12 @@ public class OrderService {
             item.setOrder(order);
             item.setPerfume(calc.getPerfume());
             item.setQuantity(calc.getQuantity());
+
             item.setUnitPrice(BigDecimal.valueOf(calc.getPerfume().getPrice()));
             item.setTotalPrice(calc.getTotalPrice());
 
             orderItemRepository.save(item);
 
-            // Actualizar stock inmediatamente
             Perfume perfume = calc.getPerfume();
             perfume.setStock(perfume.getStock() - calc.getQuantity());
             perfumeRepository.save(perfume);
@@ -137,6 +181,35 @@ public class OrderService {
         log.info("Registro de pago creado para orden: {}", order.getOrderNumber());
     }
 
+    @Transactional
+    public Order updateOrderStatus(Long orderId, OrderStatus newStatus, String username) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        boolean isSeller = order.getItems().stream()
+                .anyMatch(item -> item.getPerfume().getUser().getId().equals(user.getId()));
+
+        if (!isSeller && !user.getRole().equals(Role.ADMIN)) {
+            throw new RuntimeException("No tienes permisos para actualizar esta orden");
+        }
+
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(newStatus);
+        Order updatedOrder = orderRepository.save(order);
+
+        if (notificationService != null) {
+            notificationService.notifyOrderStatusUpdate(updatedOrder, order.getUser().getUsername());
+        }
+
+        log.info("Orden {} actualizada de {} a {} por {}",
+                order.getOrderNumber(), oldStatus, newStatus, username);
+
+        return updatedOrder;
+    }
+
     private String generateOrderNumber() {
         return "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase() +
                 "-" + System.currentTimeMillis() % 10000;
@@ -147,10 +220,12 @@ public class OrderService {
         response.setOrderId(order.getId());
         response.setOrderNumber(order.getOrderNumber());
         response.setStatus(order.getStatus().toString());
+
         response.setSubtotal(order.getSubtotal());
         response.setTax(order.getTax());
         response.setShipping(order.getShipping());
         response.setTotal(order.getTotal());
+
         response.setPaymentUrl(paymentResponse.getGatewayUrl());
         response.setClientSecret(paymentResponse.getClientSecret());
 
@@ -215,7 +290,8 @@ public class OrderService {
             throw new RuntimeException("No tienes permisos para ver esta orden");
         }
 
-        return buildOrderResponse(order, new PaymentResponseDTO());
+        PaymentResponseDTO emptyPaymentResponse = new PaymentResponseDTO();
+        return buildOrderResponse(order, emptyPaymentResponse);
     }
 
     @Transactional
@@ -231,7 +307,6 @@ public class OrderService {
             throw new RuntimeException("Solo se pueden cancelar órdenes pendientes");
         }
 
-        // Revertir stock
         for (OrderItem item : order.getItems()) {
             Perfume perfume = item.getPerfume();
             perfume.setStock(perfume.getStock() + item.getQuantity());
@@ -241,12 +316,35 @@ public class OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
-        // Cancelar pago si existe
         paymentRepository.findByOrder(order).ifPresent(payment -> {
             payment.setStatus(PaymentStatus.CANCELLED);
             paymentRepository.save(payment);
         });
 
         log.info("Orden {} cancelada por usuario {}", order.getOrderNumber(), username);
+    }
+
+    public Page<Order> getSellerOrders(String username, Pageable pageable) {
+        User seller = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return orderRepository.findBySeller(seller.getId(), pageable);
+    }
+
+    public Order getSellerOrderDetail(Long orderId, String username) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
+
+        User seller = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        boolean isSeller = order.getItems().stream()
+                .anyMatch(item -> item.getPerfume().getUser().getId().equals(seller.getId()));
+
+        if (!isSeller && !seller.getRole().equals(Role.ADMIN)) {
+            throw new RuntimeException("No tienes permisos para ver esta orden");
+        }
+
+        return order;
     }
 }

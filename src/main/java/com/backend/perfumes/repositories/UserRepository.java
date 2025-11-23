@@ -20,7 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.verificationToken = :token")
     Optional<User> findByVerificationToken(@Param("token") String token);
 
-    // Buscar usuarios con email no verificado
     @Query("SELECT u FROM User u WHERE u.emailVerified = false")
     java.util.List<User> findUnverifiedUsers();
 
