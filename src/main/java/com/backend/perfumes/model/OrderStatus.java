@@ -1,13 +1,5 @@
 package com.backend.perfumes.model;
 
 public enum OrderStatus {
-    PENDING,
-    PAID,
-    SHIPPED,
-    TRANSIT,
-    DELIVERED,
-    CANCELED,
-
-
-
+    PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED
 }
