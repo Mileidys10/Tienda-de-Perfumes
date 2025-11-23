@@ -18,8 +18,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
@@ -44,36 +42,61 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/upload/**").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                .requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers("/api/upload/**").permitAll()
+                                .requestMatchers("/uploads/**").permitAll()
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                                .requestMatchers("/verify-account").permitAll()
+                                .requestMatchers("/api/auth/verify").permitAll()
+                                .requestMatchers("/api/debug/**").permitAll()
 
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/perfumes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/brands").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/categories/**").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/brands/**").hasAnyRole("ADMIN", "VENDEDOR")
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes/public/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes/buscar").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/brands").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/brands/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/brands/public").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/brands/public/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/brands/check").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/categories/{id}").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/perfumes/mis-perfumes").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.POST, "/api/perfumes/nuevo").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/perfumes/**").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/perfumes/**").hasAnyRole("ADMIN", "VENDEDOR")
+                                .requestMatchers(HttpMethod.GET, "/api/categories/public").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
 
-                        .requestMatchers(HttpMethod.GET, "/api/brands/mis-marcas").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.POST, "/api/brands/mis-marcas").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/brands/mis-marcas/**").hasAnyRole("ADMIN", "VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/brands").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.PUT, "/api/brands/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.DELETE, "/api/brands/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
 
-                        .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasAnyRole("ADMIN", "VENDEDOR")
+                                .requestMatchers(HttpMethod.GET, "/api/brands/mis-marcas").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.GET, "/api/brands/mis-marcas/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/brands/mis-marcas").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/brands/mis-marcas/con-imagen").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
 
-                        .requestMatchers(HttpMethod.POST, "/api/brands").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/brands/**").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/brands/**").hasAnyRole("ADMIN", "VENDEDOR")
-                        .requestMatchers(HttpMethod.GET, "/api/brands/check").permitAll()
-                        .anyRequest().authenticated()
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes/mis-perfumes").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.GET, "/api/perfumes/marca/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/perfumes/nuevo").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/perfumes/nuevo-con-imagen").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.PUT, "/api/perfumes/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.PUT, "/api/perfumes/**/con-imagen").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.DELETE, "/api/perfumes/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_VENDEDOR")
+                                .requestMatchers(HttpMethod.POST, "/api/favorites/**").hasRole("CLIENTE")
+                                .requestMatchers(HttpMethod.DELETE, "/api/favorites/**").hasRole("CLIENTE")
+                                .requestMatchers(HttpMethod.GET, "/api/favorites/**").hasRole("CLIENTE")
+
+                                .requestMatchers(HttpMethod.GET, "/api/notifications/**").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/notifications/**").authenticated()
+
+                                .requestMatchers(HttpMethod.GET, "/api/seller/orders/**").hasAnyRole("VENDEDOR", "ADMIN")
+                                .requestMatchers(HttpMethod.PATCH, "/api/seller/orders/**").hasAnyRole("VENDEDOR", "ADMIN")
+
+                                .requestMatchers(HttpMethod.POST, "/api/orders/checkout").hasAnyRole("CLIENTE", "ADMIN")
+
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -95,9 +118,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of("http://localhost:8100"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -109,7 +132,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    } //hash mile123 - fdskjfksdjfksdjfksdjfksdfjksdfj
-
-
+    }
 }

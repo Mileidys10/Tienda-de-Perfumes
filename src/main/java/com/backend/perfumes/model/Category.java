@@ -1,61 +1,57 @@
 package com.backend.perfumes.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "categories")
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-
+@Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(nullable = false)
     private String name;
-    @Column(nullable = false)
+
+    @NotBlank
+    @Column(nullable = false, length = 500)
     private String description;
 
     @Column(name = "image_url")
-    private String imageUrl;
+    private String imageUrl = "";
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moderation_status")
+    private ModerationStatus moderationStatus = ModerationStatus.APPROVED;
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
 
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "moderated_by")
+    private String moderatedBy = "SYSTEM";
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    @Column(name = "moderation_date")
+    private LocalDateTime moderationDate;
 
-    public String getName() {
-        return name;
-    }
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
-    public String getDescription() {
-        return description;
-    }
 
-    public void setDescription(String description) {
-        this.description = description;
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

@@ -1,59 +1,65 @@
 package com.backend.perfumes.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.apache.tomcat.util.buf.UDecoder;
-
+import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name= "clients")
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Table(name = "orders")
+@Data
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(unique = true)
+    private String orderNumber;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    @Column(nullable = false)
-    private LocalDateTime dateTime;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private Client client;
 
-    @Column(nullable = false)
-    private OrderStatus status;
-
-@Column(nullable = false)
-private BigDecimal total;
-
-@ManyToOne(optional = false)
-@JoinColumn(name="client_id")
-private  Client client;
-
-@ManyToOne(optional = false)
-@JoinColumn(name="seller_id")
- private User seller;
-
-@ManyToOne
-@JoinColumn(name = "discount_id")
- private Discount discount;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "discount_id")
+    private Discount discount;
 
     @Enumerated(EnumType.STRING)
-    @OneToMany(mappedBy = "client")
-    private List<Order> Orders = new ArrayList<>();
+    private OrderStatus status = OrderStatus.PENDING;
 
-    @OneToMany(mappedBy = "client")
-    private List<Review> reviewList = new ArrayList<>();
+    private BigDecimal subtotal;
+    private BigDecimal tax;
+    private BigDecimal shipping;
+    private BigDecimal total;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Payment payment;
+
+    private String shippingAddress;
+    private String billingAddress;
+    private String customerEmail;
+    private String customerPhone;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

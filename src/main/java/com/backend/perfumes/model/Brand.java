@@ -1,82 +1,62 @@
 package com.backend.perfumes.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "brands")
+@Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Brand {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
+    @Column(unique = true, nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
     private String description;
 
-    @Column(name = "image_url")
+    private String countryOrigin;
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ModerationStatus moderationStatus = ModerationStatus.DRAFT;
 
-    @Column(nullable = false, name = "country_origin")
-    private String countryOrigin;
+    private String rejectionReason;
+    private LocalDateTime moderationDate;
+    private String moderatedBy = "AUTO_MODERATOR";
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
+    private boolean featured = false;
+    private int reportCount = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    public Long getId() {
-        return id;
+    @OneToMany(mappedBy = "brand", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Perfume> perfumes = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getCountryOrigin() {
-        return countryOrigin;
-    }
-
-    public void setCountryOrigin(String countryOrigin) {
-        this.countryOrigin = countryOrigin;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

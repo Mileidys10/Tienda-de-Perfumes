@@ -14,6 +14,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -80,5 +81,34 @@ public class JwtService {
 
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
+    }
+
+    public String generateVerificationToken(User user) {
+        return UUID.randomUUID().toString();
+    }
+
+    public String generateDeleteAccountToken(User user) {
+        return "del_" + UUID.randomUUID().toString();
+    }
+
+    public boolean isDeleteToken(String token) {
+        return token != null && token.startsWith("del_");
+    }
+
+    public boolean isVerificationToken(String token) {
+        return token != null && !token.startsWith("del_");
+    }
+
+    public boolean isValidUUID(String token) {
+        try {
+            if (token.startsWith("del_")) {
+                UUID.fromString(token.substring(4));
+            } else {
+                UUID.fromString(token);
+            }
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.backend.perfumes.controller;
 
 import com.backend.perfumes.services.FileStorageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +15,9 @@ import java.util.Map;
 public class FileUploadController {
 
     private final FileStorageService fileStorageService;
+
+    @Value("${server.url:http://localhost:8080}")
+    private String serverUrl;
 
     public FileUploadController(FileStorageService fileStorageService) {
         this.fileStorageService = fileStorageService;
@@ -42,15 +46,19 @@ public class FileUploadController {
                 ));
             }
 
-            // Subir archivo y obtener solo el nombre del archivo
-            String fileName = fileStorageService.storeFile(file);
+            String filePath = fileStorageService.storeFile(file);
 
-            System.out.println("File uploaded successfully: " + fileName);
+            String fullImageUrl = serverUrl + filePath;
+
+            System.out.println("✅ File uploaded successfully: " + filePath);
+            System.out.println("🔗 Full image URL: " + fullImageUrl);
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Imagen subida exitosamente",
-                    "fileUrl", fileName // Solo el nombre del archivo
+                    "filePath", filePath,
+                    "fileUrl", fullImageUrl,
+                    "fileName", file.getOriginalFilename()
             ));
 
         } catch (IOException e) {

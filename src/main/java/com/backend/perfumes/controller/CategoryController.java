@@ -3,6 +3,7 @@ package com.backend.perfumes.controller;
 import com.backend.perfumes.model.Category;
 import com.backend.perfumes.services.CategoryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,17 +21,21 @@ public class CategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<?> crearCategory(@RequestBody Category category) {
         try {
             Category nueva = categoryService.crearCategory(category);
+
+            Map<String, Object> responseData = new java.util.HashMap<>();
+            responseData.put("id", nueva.getId());
+            responseData.put("name", nueva.getName());
+            responseData.put("description", nueva.getDescription());
+            responseData.put("imageUrl", nueva.getImageUrl() != null ? nueva.getImageUrl() : "");
+
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Categoría creada exitosamente",
-                    "data", Map.of(
-                            "id", nueva.getId(),
-                            "name", nueva.getName(),
-                            "description", nueva.getDescription()
-                    )
+                    "data", responseData
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -43,6 +48,23 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<Category>> listarCategories() {
         return ResponseEntity.ok(categoryService.listarCategories());
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<?> listarCategoriesPublicas() {
+        try {
+            List<Category> categorias = categoryService.listarCategoriesPublicas();
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", categorias,
+                    "total", categorias.size()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
     }
 
     @GetMapping("/{id}")

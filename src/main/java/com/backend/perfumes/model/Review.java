@@ -1,50 +1,43 @@
 package com.backend.perfumes.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.LocalDate;
+import lombok.Data;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
 @Entity
-@Table(name="reviews")
+@Table(name = "reviews")
+@Data
 public class Review {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
-
-
     private Client client;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "perfume_id")
     private Perfume perfume;
 
-    @Column(nullable = false)
     private Integer rating;
+    private String comment;
 
-    @Column(nullable = false)
-    private String opinion;
-
-    @Column(nullable = false)
-    private LocalDate date;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
-    public void prePersist() {
-        if (date == null) {}
-        date = LocalDate.now();
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
-
-
-
-
-
-

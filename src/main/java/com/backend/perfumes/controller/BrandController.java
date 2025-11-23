@@ -4,6 +4,7 @@ import com.backend.perfumes.dto.BrandDTO;
 import com.backend.perfumes.dto.PerfumeDTO;
 import com.backend.perfumes.model.Brand;
 import com.backend.perfumes.model.Genre;
+import com.backend.perfumes.model.ModerationStatus;
 import com.backend.perfumes.model.Perfume;
 import com.backend.perfumes.services.BrandService;
 import com.backend.perfumes.services.PerfumeService;
@@ -44,6 +45,8 @@ public class BrandController {
         dto.setBrandId(perfume.getBrand().getId());
         dto.setCategoryId(perfume.getCategory().getId());
         dto.setImageUrl(perfume.getImageUrl());
+        dto.setModerationStatus(perfume.getModerationStatus());
+        dto.setRejectionReason(perfume.getRejectionReason());
 
         if (perfume.getUser() != null) {
             dto.setCreador(perfume.getUser().getUsername());
@@ -58,6 +61,7 @@ public class BrandController {
 
         return dto;
     }
+
 
     @PostMapping("/mis-marcas")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
@@ -76,7 +80,13 @@ public class BrandController {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Marca creada exitosamente",
-                    "data", nueva
+                    "data", nueva,
+                    "moderation", Map.of(
+                            "status", nueva.getModerationStatus(),
+                            "message", nueva.getModerationStatus() == ModerationStatus.APPROVED ?
+                                    "Aprobada automáticamente" :
+                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : "En revisión"
+                    )
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -103,7 +113,13 @@ public class BrandController {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Marca con imagen creada exitosamente",
-                    "data", nueva
+                    "data", nueva,
+                    "moderation", Map.of(
+                            "status", nueva.getModerationStatus(),
+                            "message", nueva.getModerationStatus() == ModerationStatus.APPROVED ?
+                                    "Aprobada automáticamente" :
+                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : "En revisión"
+                    )
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -117,13 +133,20 @@ public class BrandController {
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<?> listarMisMarcas(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(value = "filtro", required = false) String filtro) {
+            @RequestParam(value = "filtro", required = false) String filtro,
+            @RequestParam(value = "status", required = false) ModerationStatus status) {
         try {
             List<Brand> marcas;
             if (filtro != null && !filtro.isEmpty()) {
                 marcas = brandService.listarBrandsPorUsuarioConFiltro(userDetails.getUsername(), filtro);
             } else {
                 marcas = brandService.listarBrandsPorUsuario(userDetails.getUsername());
+            }
+
+            if (status != null) {
+                marcas = marcas.stream()
+                        .filter(marca -> marca.getModerationStatus() == status)
+                        .collect(Collectors.toList());
             }
 
             List<BrandDTO> marcasDTO = marcas.stream()
@@ -144,15 +167,28 @@ public class BrandController {
                         dto.setPerfumes(perfumesDTO);
                         dto.setTotalPerfumes(perfumesDTO.size());
                         dto.setImageUrl(marca.getImageUrl());
+                        dto.setModerationStatus(marca.getModerationStatus());
+                        dto.setRejectionReason(marca.getRejectionReason());
 
                         return dto;
                     })
                     .collect(Collectors.toList());
 
+            long totalAprobadas = marcas.stream().filter(m -> m.getModerationStatus() == ModerationStatus.APPROVED).count();
+            long totalPendientes = marcas.stream().filter(m -> m.getModerationStatus() == ModerationStatus.PENDING_REVIEW).count();
+            long totalRechazadas = marcas.stream().filter(m -> m.getModerationStatus() == ModerationStatus.REJECTED).count();
+            long totalBorradores = marcas.stream().filter(m -> m.getModerationStatus() == ModerationStatus.DRAFT).count();
+
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "data", marcasDTO,
-                    "total", marcasDTO.size()
+                    "total", marcasDTO.size(),
+                    "moderationStats", Map.of(
+                            "approved", totalAprobadas,
+                            "pending", totalPendientes,
+                            "rejected", totalRechazadas,
+                            "draft", totalBorradores
+                    )
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -203,7 +239,8 @@ public class BrandController {
                             "id", marca.getId(),
                             "nombre", marca.getName(),
                             "descripcion", marca.getDescription(),
-                            "paisOrigen", marca.getCountryOrigin()
+                            "paisOrigen", marca.getCountryOrigin(),
+                            "moderationStatus", marca.getModerationStatus()
                     ),
                     "data", perfumesDTO,
                     "total", perfumesDTO.size()
@@ -215,6 +252,148 @@ public class BrandController {
             ));
         }
     }
+
+
+    @GetMapping("/public")
+    public ResponseEntity<?> listarBrandsPublicas() {
+        try {
+            List<Brand> marcas = brandService.listarBrandsPublicas();
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", marcas,
+                    "total", marcas.size()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/public/{id}")
+    public ResponseEntity<?> obtenerBrandPublica(@PathVariable Long id) {
+        try {
+            Brand marca = brandService.obtenerBrandPublica(id);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", marca
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/public/{brandId}/perfumes")
+    public ResponseEntity<?> obtenerPerfumesPublicosDeMarca(@PathVariable Long brandId) {
+        try {
+            List<Perfume> perfumes = perfumeService.obtenerPerfumesPublicosPorMarca(brandId);
+            List<PerfumeDTO> perfumesDTO = perfumes.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", perfumesDTO,
+                    "total", perfumesDTO.size()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> listarTodasLasMarcasAdmin() {
+        try {
+            List<Brand> marcas = brandService.listarBrandsParaAdmin();
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", marcas,
+                    "total", marcas.size()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/admin/pendientes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> listarMarcasPendientes() {
+        try {
+            List<Brand> marcas = brandService.obtenerBrandsPendientes();
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", marcas,
+                    "total", marcas.size()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/admin/{id}/aprobar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> aprobarMarca(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Brand marca = brandService.aprobarBrand(id, userDetails.getUsername());
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Marca aprobada exitosamente",
+                    "data", marca
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/admin/{id}/rechazar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rechazarMarca(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            String motivo = request.get("motivo");
+            if (motivo == null || motivo.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Se requiere un motivo para rechazar"
+                ));
+            }
+
+            Brand marca = brandService.rechazarBrand(id, motivo, userDetails.getUsername());
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Marca rechazada exitosamente",
+                    "data", marca
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -238,13 +417,6 @@ public class BrandController {
     public ResponseEntity<Brand> actualizarBrand(@PathVariable Long id, @RequestBody Brand brand) {
         return ResponseEntity.ok(brandService.actualizarBrand(id, brand));
     }
-
-    /*@DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> eliminarBrand(@PathVariable Long id) {
-        brandService.eliminarBrand(id);
-        return ResponseEntity.ok("Marca eliminada correctamente.");
-    }*/
 
     @GetMapping("/check")
     public ResponseEntity<?> checkBrandExists(@RequestParam("name") String name) {

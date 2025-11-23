@@ -4,6 +4,7 @@ import com.backend.perfumes.dto.LoginRequest;
 import com.backend.perfumes.dto.RegiterDto;
 import com.backend.perfumes.model.User;
 import com.backend.perfumes.services.AuthService;
+import com.backend.perfumes.services.EmailService;
 import com.backend.perfumes.services.JwtService;
 import com.backend.perfumes.utils.AuthReponseBuilder;
 import com.backend.perfumes.utils.ErrorReponseBuilder;
@@ -29,11 +30,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService) {
+    public AuthController(AuthService authService, JwtService jwtService, EmailService emailService) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 
     @Operation(
@@ -49,11 +52,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
-            User usuario = authService.authenticate(request.getEmail(), request.getPassword());
+            System.out.println("=== LOGIN REQUEST ===");
+            System.out.println("Email: " + request.getEmail());
 
-            if (usuario.getRole() == null) {
-                throw new RuntimeException("El usuario no tiene un rol asignado");
-            }
+            User usuario = authService.authenticate(request.getEmail(), request.getPassword());
 
             Map<String, Object> extraClaims = new HashMap<>();
             extraClaims.put("rol", usuario.getRole());
@@ -62,15 +64,24 @@ public class AuthController {
 
             String jwtToken = jwtService.generateToken(extraClaims, usuario);
 
+            System.out.println("=== LOGIN SUCCESSFUL ===");
+            System.out.println("Usuario: " + usuario.getUsername());
+            System.out.println("Rol: " + usuario.getRole());
+
             return ResponseEntity.ok(AuthReponseBuilder.buildAuthResponse(jwtToken, usuario));
 
         } catch (RuntimeException e) {
+            System.out.println("=== LOGIN FAILED ===");
+            System.out.println("Error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ErrorReponseBuilder.buildErrorResponse(
                             e.getMessage(),
                             HttpStatus.UNAUTHORIZED
                     ));
         } catch (Exception e) {
+            System.out.println("=== LOGIN ERROR ===");
+            System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ErrorReponseBuilder.buildErrorResponse(
                             "Error interno del servidor",
@@ -86,19 +97,109 @@ public class AuthController {
         try {
             User newUser = authService.register(request);
 
-            Map<String, Object> extraClaims = new HashMap<>();
-            extraClaims.put("rol", newUser.getRole());
-            extraClaims.put("nombre", newUser.getName());
-            extraClaims.put("email", newUser.getEmail());
-
-            String token = jwtService.generateToken(extraClaims, newUser);
-
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(AuthReponseBuilder.buildAuthResponse(token, newUser));
+                    .body(Map.of(
+                            "status", "success",
+                            "message", "Usuario registrado correctamente. Por favor verifica tu email antes de iniciar sesión.",
+                            "data", Map.of(
+                                    "id", newUser.getId(),
+                                    "email", newUser.getEmail(),
+                                    "username", newUser.getUsername()
+                            )
+                    ));
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ErrorReponseBuilder.buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Operation(summary = "Verificación de correo", description = "Verifica la cuenta de usuario mediante token")
+    @ApiResponse(responseCode = "200", description = "Cuenta verificada exitosamente")
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyAccount(@RequestParam("token") String token) {
+        try {
+            String result = authService.verifyAccount(token);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", result
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Reenviar email de verificación", description = "Reenvía el email de verificación a un usuario")
+    @ApiResponse(responseCode = "200", description = "Email reenviado exitosamente")
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestParam String email) {
+        try {
+            String result = authService.resendVerificationEmail(email);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", result
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Solicitar eliminación de cuenta", description = "Envía un email para confirmar la eliminación de cuenta")
+    @ApiResponse(responseCode = "200", description = "Email de eliminación enviado")
+    @PostMapping("/request-delete")
+    public ResponseEntity<?> requestAccountDeletion(@RequestParam String email) {
+        try {
+            String result = authService.requestAccountDeletion(email);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", result
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Eliminar cuenta", description = "Elimina la cuenta usando el token de confirmación")
+    @ApiResponse(responseCode = "200", description = "Cuenta eliminada exitosamente")
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<?> deleteAccount(@RequestParam String token) {
+        try {
+            String result = authService.deleteAccount(token);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", result
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Enviar email de prueba", description = "Endpoint para probar el servicio de email")
+    @PostMapping("/send-test-email")
+    public ResponseEntity<?> sendTestEmail() {
+        try {
+            emailService.sendVerificationEmail("test@example.com", "test-token-123");
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Email de prueba enviado"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Error enviando email: " + e.getMessage()
+            ));
         }
     }
 }
