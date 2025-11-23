@@ -29,7 +29,7 @@ public class FavoritesController {
     private final FavoritesService favoritesService;
 
     @PostMapping("/{perfumeId}")
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Agregar perfume a favoritos")
     public ResponseEntity<?> addToFavorites(
             @PathVariable Long perfumeId,
@@ -55,7 +55,7 @@ public class FavoritesController {
     }
 
     @DeleteMapping("/{perfumeId}")
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Remover perfume de favoritos")
     public ResponseEntity<?> removeFromFavorites(
             @PathVariable Long perfumeId,
@@ -81,7 +81,7 @@ public class FavoritesController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Obtener perfumes favoritos del usuario")
     public ResponseEntity<?> getFavorites(
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -92,7 +92,6 @@ public class FavoritesController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Object> favorites = favoritesService.getUserFavorites(userDetails.getUsername(), pageable)
                     .map(perfume -> {
-                        // Convertir perfume a DTO
                         Map<String, Object> perfumeMap = new LinkedHashMap<>();
                         perfumeMap.put("id", perfume.getId());
                         perfumeMap.put("name", perfume.getName());
@@ -128,7 +127,7 @@ public class FavoritesController {
     }
 
     @GetMapping("/{perfumeId}/is-favorite")
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Verificar si un perfume está en favoritos")
     public ResponseEntity<?> isFavorite(
             @PathVariable Long perfumeId,
