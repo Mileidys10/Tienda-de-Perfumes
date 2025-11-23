@@ -8,7 +8,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -50,9 +49,11 @@ public class AuthService {
             System.out.println("Email verificado: " + user.isEmailVerified());
             System.out.println("Cuenta activa: " + user.isActive());
 
+            /*
             if (!user.isEmailVerified()) {
-                throw new RuntimeException("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+                throw new RuntimeException("Debes verificar tu correo electrónico antes de iniciar sesión.");
             }
+            */
 
             if (!user.isActive()) {
                 throw new RuntimeException("Tu cuenta está desactivada. Contacta al administrador.");
@@ -76,9 +77,6 @@ public class AuthService {
 
     public User register(RegiterDto request) {
         System.out.println("=== INICIANDO REGISTRO ===");
-        System.out.println("Email: " + request.getEmail());
-        System.out.println("Nombre: " + request.getName());
-        System.out.println("Apellido: " + request.getLastName());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("El email ya está registrado");
@@ -105,71 +103,38 @@ public class AuthService {
         }
 
         newUser.setActive(true);
-        newUser.setEmailVerified(false);
 
+        newUser.setEmailVerified(true);
+        newUser.setVerificationToken(null);
+        newUser.setVerificationTokenExpiry(null);
+
+        /*
         String verificationToken = UUID.randomUUID().toString();
         newUser.setVerificationToken(verificationToken);
         newUser.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+        */
 
         User savedUser = userRepository.save(newUser);
 
+        /*
         try {
             emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
-            System.out.println("Email de verificación enviado a: " + savedUser.getEmail());
         } catch (Exception e) {
             System.err.println("Error enviando email de verificación: " + e.getMessage());
         }
+        */
 
         System.out.println("=== REGISTRO EXITOSO ===");
-        System.out.println("Usuario ID: " + savedUser.getId());
-        System.out.println("Email: " + savedUser.getEmail());
-        System.out.println("Rol: " + savedUser.getRole());
         return savedUser;
     }
 
+
     public String verifyAccount(String token) {
-        System.out.println("=== VERIFICANDO CUENTA ===");
-        System.out.println("Token recibido: " + token);
-
-        try {
-            User user = userRepository.findByVerificationToken(token)
-                    .orElseThrow(() -> new RuntimeException("Token de verificación inválido o expirado"));
-
-            if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("El token de verificación ha expirado");
-            }
-
-            user.setEmailVerified(true);
-            user.setVerificationToken(null);
-            user.setVerificationTokenExpiry(null);
-            userRepository.save(user);
-
-            System.out.println("=== CUENTA VERIFICADA EXITOSAMENTE ===");
-            System.out.println("Usuario: " + user.getEmail());
-            return "¡Cuenta verificada con éxito! Ya puedes iniciar sesión.";
-
-        } catch (Exception e) {
-            System.out.println("=== ERROR EN VERIFICACIÓN: " + e.getMessage() + " ===");
-            throw new RuntimeException("Error al verificar la cuenta: " + e.getMessage());
-        }
+        return "La verificación de cuenta está desactivada.";
     }
 
     public String resendVerificationEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        if (user.isEmailVerified()) {
-            throw new RuntimeException("El email ya está verificado");
-        }
-
-        String newToken = UUID.randomUUID().toString();
-        user.setVerificationToken(newToken);
-        user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
-        userRepository.save(user);
-
-        emailService.sendVerificationEmail(user.getEmail(), newToken);
-
-        return "Email de verificación reenviado. Revisa tu bandeja de entrada.";
+        return "La verificación de correo está desactivada, no se envía ningún email.";
     }
 
     public String requestAccountDeletion(String email) {
@@ -184,22 +149,18 @@ public class AuthService {
 
         emailService.sendDeletionEmail(user.getEmail(), deleteToken);
 
-        return "Se ha enviado un enlace de confirmación para eliminar tu cuenta a tu correo electrónico.";
+        return "Se envió un enlace para eliminar la cuenta.";
     }
 
     public String deleteAccount(String token) {
         try {
             User user = userRepository.findByVerificationToken(token)
-                    .orElseThrow(() -> new RuntimeException("Token de eliminación inválido o expirado"));
+                    .orElseThrow(() -> new RuntimeException("Token inválido o expirado"));
 
             userRepository.delete(user);
-
-            System.out.println("=== CUENTA ELIMINADA ===");
-            System.out.println("Usuario eliminado: " + user.getEmail());
             return "Cuenta eliminada exitosamente";
 
         } catch (Exception e) {
-            System.out.println("=== ERROR ELIMINANDO CUENTA: " + e.getMessage() + " ===");
             throw new RuntimeException("Error al eliminar la cuenta: " + e.getMessage());
         }
     }
