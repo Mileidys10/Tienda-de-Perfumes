@@ -1,4 +1,3 @@
-// OrderStatus.java - Actualizar enum con más estados
 package com.backend.perfumes.model;
 
 public enum OrderStatus {

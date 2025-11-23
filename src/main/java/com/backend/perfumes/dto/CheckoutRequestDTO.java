@@ -11,5 +11,5 @@ public class CheckoutRequestDTO {
     private String billingAddress;
     private String customerEmail;
     private String customerPhone;
-    private String paymentMethod; // "STRIPE", "PAYPAL"
+    private String paymentMethod;
 }

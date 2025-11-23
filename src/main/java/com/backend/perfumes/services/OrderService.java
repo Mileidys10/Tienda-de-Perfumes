@@ -324,11 +324,15 @@ public class OrderService {
         log.info("Orden {} cancelada por usuario {}", order.getOrderNumber(), username);
     }
 
-    public Page<Order> getSellerOrders(String username, Pageable pageable) {
+    public Page<Order> getSellerOrders(String username, Pageable pageable, OrderStatus status) {
         User seller = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        return orderRepository.findBySeller(seller.getId(), pageable);
+        if (status != null) {
+            return orderRepository.findBySellerAndStatus(seller.getId(), status, pageable);
+        } else {
+            return orderRepository.findBySeller(seller.getId(), pageable);
+        }
     }
 
     public Order getSellerOrderDetail(Long orderId, String username) {
