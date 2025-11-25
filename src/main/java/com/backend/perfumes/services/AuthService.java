@@ -54,9 +54,11 @@ public class AuthService {
             System.out.println("Email verificado: " + user.isEmailVerified());
             System.out.println("Cuenta activa: " + user.isActive());
 
+            /*
             if (!user.isEmailVerified()) {
                 throw new RuntimeException("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
             }
+            */
 
             if (!user.isActive()) {
                 throw new RuntimeException("Tu cuenta está desactivada. Contacta al administrador.");
@@ -109,24 +111,29 @@ public class AuthService {
         }
 
         newUser.setActive(true);
-        newUser.setEmailVerified(false);
+        // newUser.setEmailVerified(false);
+        newUser.setEmailVerified(true); // Marcamos como verificado automáticamente
 
+        /*
         String code = generateOtp();
         String hashedOtp = passwordEncoder.encode(code);
 
         newUser.setVerificationCode(hashedOtp);
         newUser.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(10));
+        */
 
         User savedUser = userRepository.save(newUser);
 
+        /*
         try {
             emailService.sendVerificationEmail(savedUser.getEmail(), code);
             System.out.println("Email de verificación enviado a: " + savedUser.getEmail());
         } catch (Exception e) {
             System.err.println("Error enviando email de verificación: " + e.getMessage());
         }
+        */
 
-        System.out.println("=== REGISTRO EXITOSO ===");
+        System.out.println("=== REGISTRO EXITOSA ===");
         System.out.println("Usuario ID: " + savedUser.getId());
         System.out.println("Email: " + savedUser.getEmail());
         System.out.println("Rol: " + savedUser.getRole());
@@ -134,7 +141,7 @@ public class AuthService {
     }
 
     public String verifyAccount(String email, String code) {
-
+        /*
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
@@ -155,11 +162,13 @@ public class AuthService {
         user.setVerificationCodeExpiry(null);
 
         userRepository.save(user);
+        */
 
-        return "¡Cuenta verificada con éxito!";
+        return "¡Cuenta verificada con éxito! (Verificación temporalmente deshabilitada)";
     }
 
     public String resendVerificationEmail(String email) {
+        /*
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
@@ -176,11 +185,10 @@ public class AuthService {
         userRepository.save(user);
 
         emailService.sendVerificationEmail(user.getEmail(), code);
+        */
 
-        return "Código de verificación reenviado.";
+        return "Código de verificación reenviado. (Funcionalidad temporalmente deshabilitada)";
     }
-
-
 
     public boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();
