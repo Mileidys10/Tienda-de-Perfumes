@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,7 +38,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDTO createOrder(CheckoutRequestDTO checkoutRequest, String username) {
-        log.info("Creando orden para usuario: {}", username);
+        log.info("🛒 Creando orden para usuario: {}", username);
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -56,9 +57,11 @@ public class OrderService {
         order.setCustomerEmail(checkoutRequest.getCustomerEmail());
         order.setCustomerPhone(checkoutRequest.getCustomerPhone());
         order.setStatus(OrderStatus.PENDING);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setUpdatedAt(LocalDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
-        log.info("Orden creada con ID: {}", savedOrder.getId());
+        log.info("✅ Orden creada con ID: {} - Número: {}", savedOrder.getId(), savedOrder.getOrderNumber());
 
         createOrderItems(savedOrder, calculation.getItems());
 
@@ -70,13 +73,15 @@ public class OrderService {
         return buildOrderResponse(savedOrder, paymentResponse);
     }
 
+
     @Transactional
     public void confirmPayment(String paymentId) {
         try {
+            log.info("💳 Confirmando pago: {}", paymentId);
+
             boolean paymentVerified = paymentGatewayService.verifyPayment(paymentId);
 
             if (paymentVerified) {
-                // Buscar el pago en nuestra base de datos
                 Payment payment = paymentRepository.findByPaymentGatewayId(paymentId)
                         .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
 
@@ -89,26 +94,39 @@ public class OrderService {
 
                 // Actualizar estado de la orden
                 order.setStatus(OrderStatus.CONFIRMED);
+                order.setUpdatedAt(LocalDateTime.now());
                 orderRepository.save(order);
 
-                // Notificar al vendedor
+                // NOTIFICACIONES MEJORADAS
                 if (notificationService != null) {
+                    // Notificar a los vendedores sobre NUEVA VENTA
                     notificationService.notifySellerNewOrder(order);
+
+                    // Notificar PAGO EXITOSO a cliente y vendedores
+                    notificationService.notifyPaymentSuccess(order);
+
+                    // Verificar stock bajo después de la venta
+                    checkLowStockAfterOrder(order);
                 }
 
-                // Notificar al cliente
-                if (notificationService != null) {
-                    notificationService.notifyOrderStatusUpdate(order, order.getUser().getUsername());
-                }
-
-                log.info("Pago confirmado y orden {} actualizada a CONFIRMED", order.getOrderNumber());
+                log.info("✅ Pago confirmado y orden {} actualizada a CONFIRMED", order.getOrderNumber());
             } else {
-                throw new RuntimeException("Pago no verificado");
+                throw new RuntimeException("Pago no verificado por el gateway");
             }
 
         } catch (Exception e) {
-            log.error("Error confirmando pago: {}", e.getMessage());
+            log.error("❌ Error confirmando pago: {}", e.getMessage(), e);
             throw new RuntimeException("Error confirmando pago: " + e.getMessage());
+        }
+    }
+
+    private void checkLowStockAfterOrder(Order order) {
+        for (OrderItem item : order.getItems()) {
+            Perfume perfume = item.getPerfume();
+            // Si el stock es menor a 5, notificar al vendedor
+            if (perfume.getStock() < 5) {
+                notificationService.notifyLowStock(perfume);
+            }
         }
     }
 
@@ -351,4 +369,28 @@ public class OrderService {
 
         return order;
     }
+
+    public Map<String, Object> getSellerStats(String username) {
+        User seller = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Obtener estadísticas del vendedor
+        long totalOrders = orderRepository.countBySeller(seller.getId());
+        long pendingOrders = orderRepository.countBySellerAndStatus(seller.getId(), OrderStatus.CONFIRMED);
+        long completedOrders = orderRepository.countBySellerAndStatus(seller.getId(), OrderStatus.DELIVERED);
+
+        // Calcular ingresos totales
+        Double totalRevenue = orderRepository.getTotalRevenueBySeller(seller.getId());
+        if (totalRevenue == null) totalRevenue = 0.0;
+
+        Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalOrders", totalOrders);
+        stats.put("pendingOrders", pendingOrders);
+        stats.put("completedOrders", completedOrders);
+        stats.put("totalRevenue", totalRevenue);
+        stats.put("lastUpdated", LocalDateTime.now());
+
+        return stats;
+    }
+
 }

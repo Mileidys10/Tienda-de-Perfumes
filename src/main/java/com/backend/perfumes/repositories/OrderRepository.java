@@ -44,7 +44,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId AND o.status = :status")
     Page<Order> findBySellerAndStatus(@Param("sellerId") Long sellerId, @Param("status") OrderStatus status, Pageable pageable);
 
-    // Método para debug - verificar si hay órdenes para un vendedor
-    @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
+
+    @Query("SELECT COUNT(o) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId")
     long countBySeller(@Param("sellerId") Long sellerId);
+
+    @Query("SELECT COUNT(o) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId AND o.status = :status")
+    long countBySellerAndStatus(@Param("sellerId") Long sellerId, @Param("status") OrderStatus status);
+
+    @Query("SELECT SUM(oi.totalPrice) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId AND o.status = 'DELIVERED'")
+    Double getTotalRevenueBySeller(@Param("sellerId") Long sellerId);
 }
