@@ -33,12 +33,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.user.username = :username ORDER BY o.createdAt DESC")
     Page<Order> findByUsername(@Param("username") String username, Pageable pageable);
 
-    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
-    Page<Order> findBySeller(@Param("sellerId") Long sellerId, Pageable pageable);
 
     @Query("SELECT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId AND o.id = :orderId")
     Optional<Order> findBySellerAndOrderId(@Param("sellerId") Long sellerId, @Param("orderId") Long orderId);
 
+
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
+    Page<Order> findBySeller(@Param("sellerId") Long sellerId, Pageable pageable);
+
     @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId AND o.status = :status")
     Page<Order> findBySellerAndStatus(@Param("sellerId") Long sellerId, @Param("status") OrderStatus status, Pageable pageable);
+
+    // Método para debug - verificar si hay órdenes para un vendedor
+    @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
+    long countBySeller(@Param("sellerId") Long sellerId);
 }

@@ -35,6 +35,11 @@ public class AuthService {
         this.emailService = emailService;
     }
 
+
+    private String generateOtp() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
+
     public User authenticate(String email, String password) {
         try {
             System.out.println("=== INICIANDO AUTENTICACIÓN ===");
@@ -49,11 +54,9 @@ public class AuthService {
             System.out.println("Email verificado: " + user.isEmailVerified());
             System.out.println("Cuenta activa: " + user.isActive());
 
-            /*
             if (!user.isEmailVerified()) {
-                throw new RuntimeException("Debes verificar tu correo electrónico antes de iniciar sesión.");
+                throw new RuntimeException("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
             }
-            */
 
             if (!user.isActive()) {
                 throw new RuntimeException("Tu cuenta está desactivada. Contacta al administrador.");
@@ -77,6 +80,9 @@ public class AuthService {
 
     public User register(RegiterDto request) {
         System.out.println("=== INICIANDO REGISTRO ===");
+        System.out.println("Email: " + request.getEmail());
+        System.out.println("Nombre: " + request.getName());
+        System.out.println("Apellido: " + request.getLastName());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("El email ya está registrado");
@@ -103,67 +109,78 @@ public class AuthService {
         }
 
         newUser.setActive(true);
+        newUser.setEmailVerified(false);
 
-        newUser.setEmailVerified(true);
-        newUser.setVerificationToken(null);
-        newUser.setVerificationTokenExpiry(null);
+        String code = generateOtp();
+        String hashedOtp = passwordEncoder.encode(code);
 
-        /*
-        String verificationToken = UUID.randomUUID().toString();
-        newUser.setVerificationToken(verificationToken);
-        newUser.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
-        */
+        newUser.setVerificationCode(hashedOtp);
+        newUser.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(10));
 
         User savedUser = userRepository.save(newUser);
 
-        /*
         try {
-            emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
+            emailService.sendVerificationEmail(savedUser.getEmail(), code);
+            System.out.println("Email de verificación enviado a: " + savedUser.getEmail());
         } catch (Exception e) {
             System.err.println("Error enviando email de verificación: " + e.getMessage());
         }
-        */
 
         System.out.println("=== REGISTRO EXITOSO ===");
+        System.out.println("Usuario ID: " + savedUser.getId());
+        System.out.println("Email: " + savedUser.getEmail());
+        System.out.println("Rol: " + savedUser.getRole());
         return savedUser;
     }
 
+    public String verifyAccount(String email, String code) {
 
-    public String verifyAccount(String token) {
-        return "La verificación de cuenta está desactivada.";
-    }
-
-    public String resendVerificationEmail(String email) {
-        return "La verificación de correo está desactivada, no se envía ningún email.";
-    }
-
-    public String requestAccountDeletion(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String deleteToken = UUID.randomUUID().toString();
+        if (user.getVerificationCode() == null) {
+            throw new RuntimeException("No hay verificación pendiente.");
+        }
 
-        user.setVerificationToken(deleteToken);
-        user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("El código ha expirado");
+        }
+
+        if (!passwordEncoder.matches(code, user.getVerificationCode())) {
+            throw new RuntimeException("Código inválido");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+
         userRepository.save(user);
 
-        emailService.sendDeletionEmail(user.getEmail(), deleteToken);
-
-        return "Se envió un enlace para eliminar la cuenta.";
+        return "¡Cuenta verificada con éxito!";
     }
 
-    public String deleteAccount(String token) {
-        try {
-            User user = userRepository.findByVerificationToken(token)
-                    .orElseThrow(() -> new RuntimeException("Token inválido o expirado"));
+    public String resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-            userRepository.delete(user);
-            return "Cuenta eliminada exitosamente";
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error al eliminar la cuenta: " + e.getMessage());
+        if (user.isEmailVerified()) {
+            throw new RuntimeException("El email ya está verificado");
         }
+
+        String code = generateOtp();
+        String hashedOtp = passwordEncoder.encode(code);
+
+        user.setVerificationCode(hashedOtp);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(10));
+
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), code);
+
+        return "Código de verificación reenviado.";
     }
+
+
 
     public boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();

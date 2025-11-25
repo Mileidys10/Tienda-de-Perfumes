@@ -22,11 +22,31 @@ public class User implements UserDetails, Serializable {
     @Column(name = "pending_email")
     private String pendingEmail;
 
-    @Column(name = "email_update_code", length = 10)
+    @Column(name = "email_update_code", length = 100)
     private String emailUpdateCode;
 
     @Column(name = "email_update_code_expiry")
     private LocalDateTime emailUpdateCodeExpiry;
+
+    @Column(name= "email_deletion_code", length = 100)
+    private String deletionCode;
+
+    @Column(name= "email_deletion_code_expiry")
+    private LocalDateTime deletionCodeExpiry;
+
+
+    @Column(name = "verification_code", length = 100)
+    private String verificationCode;
+
+
+    @Column(name = "verification_code_expiry")
+    private LocalDateTime verificationCodeExpiry;
+
+    @Column(name = "verification_token", length = 500)
+    private String verificationToken;
+
+    @Column(name = "verification_token_expiry")
+    private LocalDateTime verificationTokenExpiry;
 
     @Column(nullable = false, unique = true, length = 100)
     private String username;
@@ -53,11 +73,7 @@ public class User implements UserDetails, Serializable {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
-    @Column(name = "verification_token", length = 500)
-    private String verificationToken;
 
-    @Column(name = "verification_token_expiry")
-    private LocalDateTime verificationTokenExpiry;
 
     public User() {
     }
@@ -115,6 +131,43 @@ public class User implements UserDetails, Serializable {
     public void setEmailUpdateCodeExpiry(LocalDateTime emailUpdateCodeExpiry) {
         this.emailUpdateCodeExpiry = emailUpdateCodeExpiry;
     }
+
+    public void setDeletionCode(String deletionCode) {
+        this.deletionCode = deletionCode;
+    }
+
+    public  String getDeletionCode() {
+
+        return deletionCode;
+    }
+
+
+    public void setDeletionCodeExpiry(LocalDateTime deletionCodeExpiry) {
+        this.deletionCodeExpiry = deletionCodeExpiry;
+    }
+
+    public LocalDateTime getDeletionCodeExpiry() {
+        return deletionCodeExpiry;
+
+    }
+
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
+    }
+
+    public LocalDateTime getVerificationCodeExpiry() {
+        return verificationCodeExpiry;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCodeExpiry(LocalDateTime verificationCodeExpiry) {
+        this.verificationCodeExpiry = verificationCodeExpiry;
+    }
+
 
     public String getUsername() {
         return username;
@@ -180,21 +233,7 @@ public class User implements UserDetails, Serializable {
         this.emailVerified = emailVerified;
     }
 
-    public String getVerificationToken() {
-        return verificationToken;
-    }
 
-    public void setVerificationToken(String verificationToken) {
-        this.verificationToken = verificationToken;
-    }
-
-    public LocalDateTime getVerificationTokenExpiry() {
-        return verificationTokenExpiry;
-    }
-
-    public void setVerificationTokenExpiry(LocalDateTime verificationTokenExpiry) {
-        this.verificationTokenExpiry = verificationTokenExpiry;
-    }
 
     // UserDetails methods
     @Override
