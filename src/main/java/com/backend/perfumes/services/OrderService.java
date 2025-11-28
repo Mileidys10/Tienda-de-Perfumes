@@ -32,6 +32,8 @@ public class OrderService {
     private final PerfumeRepository perfumeRepository;
     private final UserRepository userRepository;
     private final PaymentGatewayService paymentGatewayService;
+    private final EmailService emailService;
+
 
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.16); // 16% IVA
     private static final BigDecimal SHIPPING_COST = BigDecimal.valueOf(5.00);
@@ -102,6 +104,15 @@ public class OrderService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 order.setUpdatedAt(LocalDateTime.now());
                 orderRepository.save(order);
+
+                try {
+                    emailService.sendOrderConfirmationEmail(order);
+                    log.info("Email de confirmación enviado para orden: {}", order.getOrderNumber());
+                } catch (Exception e) {
+                    log.error(" Error enviando email de confirmación: {}", e.getMessage());
+                }
+
+
 
                 // NOTIFICACIONES MEJORADAS
                 if (notificationService != null) {
@@ -232,6 +243,17 @@ public class OrderService {
         OrderStatus oldStatus = order.getStatus();
         order.setStatus(newStatus);
         Order updatedOrder = orderRepository.save(order);
+
+        try {
+            emailService.sendOrderStatusUpdateEmail(updatedOrder, oldStatus, newStatus);
+            log.info(" Email de actualización enviado para orden: {} (de {} a {})",
+                    order.getOrderNumber(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.error(" Error enviando email de actualización de estado: {}", e.getMessage());
+            // No lanzar excepción para que el update continúe aunque falle el email
+        }
+
+
 
         if (notificationService != null) {
             notificationService.notifyOrderStatusUpdate(updatedOrder, order.getUser().getUsername());
