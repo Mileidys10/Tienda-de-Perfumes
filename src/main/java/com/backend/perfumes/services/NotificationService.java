@@ -198,27 +198,39 @@ public class NotificationService {
 
     @Transactional
     public void markAllAsRead(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        try {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Opción 1: Usando el método del repository (más eficiente)
-        notificationRepository.markAllAsReadByUser(user);
+            // Usar el método del repository
+            int updatedCount = notificationRepository.markAllAsReadByUser(user);
 
-        log.info("✅ Todas las notificaciones marcadas como leídas para: {}", username);
+            log.info("✅ {} notificaciones marcadas como leídas para: {}", updatedCount, username);
+
+        } catch (Exception e) {
+            log.error("❌ Error marcando todas las notificaciones como leídas: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al marcar notificaciones como leídas: " + e.getMessage());
+        }
     }
 
     @Transactional
     public void markAsRead(Long notificationId, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        try {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Opción 1: Usando el método del repository (más eficiente)
-        int updated = notificationRepository.markAsRead(notificationId, user);
-        if (updated == 0) {
-            throw new RuntimeException("Notificación no encontrada o sin permisos");
+            // Usar el método del repository
+            int updated = notificationRepository.markAsRead(notificationId, user);
+            if (updated == 0) {
+                throw new RuntimeException("Notificación no encontrada o sin permisos");
+            }
+
+            log.info("✅ Notificación {} marcada como leída para: {}", notificationId, username);
+
+        } catch (Exception e) {
+            log.error("❌ Error marcando notificación como leída: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al marcar notificación como leída: " + e.getMessage());
         }
-
-        log.info("✅ Notificación {} marcada como leída para: {}", notificationId, username);
     }
 
     // Método adicional para obtener notificaciones recientes
@@ -254,6 +266,4 @@ public class NotificationService {
 
         log.info("🧹 Notificaciones antiguas eliminadas para: {}", username);
     }
-
-
 }

@@ -70,6 +70,12 @@ public class OrderService {
 
         createPaymentRecord(savedOrder, paymentResponse, checkoutRequest.getPaymentMethod());
 
+        // ✅ NUEVO: Notificar inmediatamente a los vendedores sobre la nueva orden PENDIENTE
+        if (notificationService != null) {
+            notificationService.notifySellerNewOrder(savedOrder);
+            log.info("📦 Notificaciones de nueva orden enviadas a vendedores");
+        }
+
         return buildOrderResponse(savedOrder, paymentResponse);
     }
 
@@ -127,6 +133,15 @@ public class OrderService {
             if (perfume.getStock() < 5) {
                 notificationService.notifyLowStock(perfume);
             }
+        }
+    }
+
+    public boolean simulatePayment(String paymentIntentId, boolean success) {
+        try {
+            return paymentGatewayService.simulatePayment(paymentIntentId, success);
+        } catch (Exception e) {
+            log.error("Error simulando pago: {}", e.getMessage());
+            return false;
         }
     }
 

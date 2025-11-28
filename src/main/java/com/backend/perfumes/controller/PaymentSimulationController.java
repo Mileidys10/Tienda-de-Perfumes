@@ -1,5 +1,6 @@
 package com.backend.perfumes.controller;
 
+import com.backend.perfumes.services.OrderService;
 import com.backend.perfumes.services.PaymentGatewayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,16 +22,27 @@ public class PaymentSimulationController {
 
     private final PaymentGatewayService paymentGatewayService;
 
-    @GetMapping("/simulate-payment")
-    @Operation(summary = "Simular proceso de pago (para testing)")
-    public ResponseEntity<?> simulatePayment(
-            @RequestParam String payment_id,
-            @RequestParam(defaultValue = "true") boolean success) {
+    private final OrderService orderService;
 
+    @PostMapping("/simulate-payment")
+    @Operation(summary = "Simular pago para testing")
+    public ResponseEntity<?> simulatePayment(@RequestBody Map<String, Object> request) {
         try {
-            boolean result = paymentGatewayService.simulatePayment(payment_id, success);
+            String paymentIntentId = (String) request.get("paymentIntentId");
+            Boolean success = (Boolean) request.get("success");
 
-            if (!result) {
+            if (paymentIntentId == null || success == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "paymentIntentId y success son requeridos",
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            // Simular el pago
+            boolean simulated = paymentGatewayService.simulatePayment(paymentIntentId, success);
+
+            if (!simulated) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
                         "message", "Pago no encontrado",
@@ -38,21 +50,29 @@ public class PaymentSimulationController {
                 ));
             }
 
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("status", "success");
-            response.put("message", success ?
-                    "Pago simulado exitosamente" : "Pago simulado fallido");
-            response.put("paymentId", payment_id);
-            response.put("success", success);
-            response.put("timestamp", LocalDateTime.now());
-
+            // ✅ CORREGIDO: Siempre llamar a confirmPayment cuando success=true
             if (success) {
-                response.put("redirectUrl", "/api/orders/confirm-payment?payment_id=" + payment_id);
+                try {
+                    orderService.confirmPayment(paymentIntentId);
+                    log.info("✅ Pago confirmado exitosamente: {}", paymentIntentId);
+                } catch (Exception e) {
+                    log.error("❌ Error confirmando pago: {}", e.getMessage(), e);
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "status", "error",
+                            "message", "Pago simulado pero error confirmando: " + e.getMessage(),
+                            "timestamp", LocalDateTime.now()
+                    ));
+                }
             }
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", success ? "Pago simulado y confirmado exitosamente" : "Pago simulado como fallido",
+                    "timestamp", LocalDateTime.now()
+            ));
 
         } catch (Exception e) {
+            log.error("Error simulando pago: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),

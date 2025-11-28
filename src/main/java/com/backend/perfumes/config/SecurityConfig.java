@@ -104,6 +104,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/perfumes/**/con-imagen").hasAnyRole("VENDEDOR", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/perfumes/**").hasAnyRole("VENDEDOR", "ADMIN")
 
+                        .requestMatchers(HttpMethod.POST, "/api/orders/simulate-payment").permitAll() // Testing
+
                         // ÓRDENES DEL VENDEDOR
                         .requestMatchers(HttpMethod.GET, "/api/seller/orders/**").hasAnyRole("VENDEDOR", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/seller/orders/**").hasAnyRole("VENDEDOR", "ADMIN")
@@ -115,7 +117,7 @@ public class SecurityConfig {
                         // NOTIFICACIONES - TODOS LOS USUARIOS AUTENTICADOS
                         .requestMatchers(HttpMethod.GET, "/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/notifications/**").authenticated()
-
+                        .requestMatchers(HttpMethod.PATCH, "/api/notifications/**").hasAnyRole("CLIENTE", "VENDEDOR", "ADMIN")
                         // CUALQUIER OTRA PETICIÓN REQUIERE AUTENTICACIÓN
                         .anyRequest().authenticated()
                 )
@@ -139,9 +141,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:8100",
-                "http://localhost:8101",
-                "http://localhost:4200"
+                "http://localhost:8100"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of(

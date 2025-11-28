@@ -1,37 +1,33 @@
 package com.backend.perfumes.controller;
 
-import com.backend.perfumes.services.FileStorageService;
-import org.springframework.beans.factory.annotation.Value;
+import com.backend.perfumes.services.SupabaseStorageService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/upload")
 @CrossOrigin(origins = "*")
+@Slf4j
 public class FileUploadController {
 
-    private final FileStorageService fileStorageService;
+    private final SupabaseStorageService supabaseStorageService;
 
-    @Value("${server.url:http://localhost:8080}")
-    private String serverUrl;
-
-    public FileUploadController(FileStorageService fileStorageService) {
-        this.fileStorageService = fileStorageService;
+    public FileUploadController(SupabaseStorageService supabaseStorageService) {
+        this.supabaseStorageService = supabaseStorageService;
     }
 
     @PostMapping("/image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
-        System.out.println("=== UPLOAD DEBUG ===");
-        System.out.println("File name: " + file.getOriginalFilename());
-        System.out.println("File size: " + file.getSize());
-        System.out.println("Content type: " + file.getContentType());
+        log.info("📥 Recibiendo solicitud de upload - Archivo: {}, Tamaño: {}, Tipo: {}",
+                file.getOriginalFilename(), file.getSize(), file.getContentType());
 
         try {
             if (file.isEmpty()) {
+                log.warn("❌ Archivo vacío recibido");
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
                         "message", "El archivo está vacío"
@@ -39,33 +35,71 @@ public class FileUploadController {
             }
 
             String contentType = file.getContentType();
+            log.info("🔍 Content-Type detectado: {}", contentType);
+
             if (contentType == null || !contentType.startsWith("image/")) {
+                log.warn("❌ Tipo de archivo no permitido: {}", contentType);
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
                         "message", "Solo se permiten archivos de imagen"
                 ));
             }
 
-            String filePath = fileStorageService.storeFile(file);
+            // Validar tamaño (máximo 5MB)
+            if (file.getSize() > 5 * 1024 * 1024) {
+                log.warn("❌ Archivo demasiado grande: {} bytes", file.getSize());
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "La imagen es demasiado grande (máximo 5MB)"
+                ));
+            }
 
-            String fullImageUrl = serverUrl + filePath;
+            log.info("🚀 Iniciando subida a Supabase...");
 
-            System.out.println("✅ File uploaded successfully: " + filePath);
-            System.out.println("🔗 Full image URL: " + fullImageUrl);
+            // Subir a Supabase
+            String imageUrl = supabaseStorageService.uploadImage(file);
+
+            log.info("✅ Subida completada exitosamente. URL: {}", imageUrl);
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Imagen subida exitosamente",
-                    "filePath", filePath,
-                    "fileUrl", fullImageUrl,
+                    "message", "Imagen subida exitosamente a Supabase",
+                    "fileUrl", imageUrl,
                     "fileName", file.getOriginalFilename()
             ));
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("💥 ERROR CRÍTICO al subir la imagen: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "status", "error",
-                    "message", "Error al subir la imagen: " + e.getMessage()
+                    "message", "Error al subir la imagen: " + e.getMessage(),
+                    "debug", "Verifica la configuración de Supabase"
+            ));
+        }
+    }
+
+
+    @DeleteMapping("/image")
+    public ResponseEntity<?> deleteImage(@RequestParam String imageUrl) {
+        try {
+            boolean deleted = supabaseStorageService.deleteImage(imageUrl);
+
+            if (deleted) {
+                return ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "message", "Imagen eliminada exitosamente"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "No se pudo eliminar la imagen"
+                ));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Error al eliminar la imagen: " + e.getMessage()
             ));
         }
     }

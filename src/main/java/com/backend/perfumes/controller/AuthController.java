@@ -41,7 +41,7 @@ public class AuthController {
 
     @Operation(
             summary = "Login de usuarios (ADMIN, VENDEDOR, CLIENTE)",
-            description = "Autentica un usuario y devuelve su token JWT junto a la información del perfil",
+            description = "Autentica un usuario y devuelve sus tokens JWT (access y refresh) junto a la información del perfil",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Login exitoso",
                             content = @Content(schema = @Schema(implementation = Map.class))),
@@ -62,13 +62,14 @@ public class AuthController {
             extraClaims.put("nombre", usuario.getName());
             extraClaims.put("email", usuario.getEmail());
 
-            String jwtToken = jwtService.generateToken(extraClaims, usuario);
+            String accessToken = jwtService.generateToken(extraClaims, usuario);
+            String refreshToken = jwtService.generateRefreshToken(usuario);
 
             System.out.println("=== LOGIN SUCCESSFUL ===");
             System.out.println("Usuario: " + usuario.getUsername());
             System.out.println("Rol: " + usuario.getRole());
 
-            return ResponseEntity.ok(AuthReponseBuilder.buildAuthResponse(jwtToken, usuario));
+            return ResponseEntity.ok(AuthReponseBuilder.buildAuthResponse(accessToken, refreshToken, usuario));
 
         } catch (RuntimeException e) {
             System.out.println("=== LOGIN FAILED ===");
@@ -166,6 +167,51 @@ public class AuthController {
                     "status", "error",
                     "message", "Error enviando email: " + e.getMessage()
             ));
+        }
+    }
+
+    @Operation(
+            summary = "Refrescar tokens",
+            description = "Genera un nuevo access token y refresh token usando un refresh token válido",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente"),
+                    @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
+            }
+    )
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+        try {
+            String refreshToken = request.get("refreshToken");
+
+            if (refreshToken == null || refreshToken.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ErrorReponseBuilder.buildErrorResponse(
+                                "Refresh token es requerido",
+                                HttpStatus.BAD_REQUEST
+                        ));
+            }
+
+            Map<String, String> tokens = authService.refreshToken(refreshToken);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Tokens refrescados exitosamente",
+                    "accessToken", tokens.get("accessToken"),
+                    "refreshToken", tokens.get("refreshToken")
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ErrorReponseBuilder.buildErrorResponse(
+                            e.getMessage(),
+                            HttpStatus.UNAUTHORIZED
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ErrorReponseBuilder.buildErrorResponse(
+                            "Error interno del servidor",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ));
         }
     }
 }

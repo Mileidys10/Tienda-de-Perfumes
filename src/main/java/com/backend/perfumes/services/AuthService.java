@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -193,4 +195,58 @@ public class AuthService {
     public boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();
     }
+
+    public Map<String, String> refreshToken(String refreshToken) {
+        try {
+            System.out.println("=== INICIANDO REFRESCO DE TOKEN ===");
+
+            // Validar que el token sea un refresh token
+            if (!jwtService.isRefreshToken(refreshToken)) {
+                throw new RuntimeException("Token no válido para refresh");
+            }
+
+            // Extraer username del refresh token
+            String username = jwtService.extractUsername(refreshToken);
+            System.out.println("Username extraído: " + username);
+
+            // Buscar usuario
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            // Validar refresh token
+            if (!jwtService.isTokenValid(refreshToken, user)) {
+                throw new RuntimeException("Refresh token inválido o expirado");
+            }
+
+            if (!user.isActive()) {
+                throw new RuntimeException("Tu cuenta está desactivada. Contacta al administrador.");
+            }
+
+            // Generar nuevos tokens
+            Map<String, Object> extraClaims = new HashMap<>();
+            extraClaims.put("rol", user.getRole());
+            extraClaims.put("nombre", user.getName());
+            extraClaims.put("email", user.getEmail());
+
+            String newAccessToken = jwtService.generateToken(extraClaims, user);
+            String newRefreshToken = jwtService.generateRefreshToken(user);
+
+            System.out.println("=== REFRESCO DE TOKEN EXITOSO ===");
+
+            Map<String, String> tokens = new HashMap<>();
+            tokens.put("accessToken", newAccessToken);
+            tokens.put("refreshToken", newRefreshToken);
+
+            return tokens;
+
+        } catch (RuntimeException e) {
+            System.out.println("=== ERROR EN REFRESCO: " + e.getMessage() + " ===");
+            throw e;
+        } catch (Exception e) {
+            System.out.println("=== ERROR EN REFRESCO: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            throw new RuntimeException("Error en el servidor durante el refresco de token");
+        }
+    }
+
 }

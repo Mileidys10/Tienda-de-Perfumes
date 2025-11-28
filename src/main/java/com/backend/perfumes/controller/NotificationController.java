@@ -47,7 +47,7 @@ public class NotificationController {
                 notifMap.put("title", notification.getTitle());
                 notifMap.put("message", notification.getMessage());
                 notifMap.put("type", notification.getType());
-                notifMap.put("isRead", notification.getIsRead()); // Usar getter
+                notifMap.put("isRead", notification.getIsRead());
                 notifMap.put("createdAt", notification.getCreatedAt());
                 if (notification.getOrder() != null) {
                     notifMap.put("orderNumber", notification.getOrder().getOrderNumber());
@@ -81,7 +81,8 @@ public class NotificationController {
         }
     }
 
-    @PostMapping("/mark-all-read")
+    // ✅ CORREGIDO: Cambiar a PATCH y ruta que coincide con el frontend
+    @PatchMapping("/read-all")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Marcar todas las notificaciones como leídas")
     public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal UserDetails userDetails) {
@@ -96,7 +97,7 @@ public class NotificationController {
 
         } catch (Exception e) {
             log.error("Error marcando todas las notificaciones como leídas: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of(
+            return ResponseEntity.internalServerError().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
                     "timestamp", LocalDateTime.now()
@@ -104,7 +105,8 @@ public class NotificationController {
         }
     }
 
-    @PostMapping("/{id}/mark-read")
+    // ✅ CORREGIDO: Cambiar a PATCH y ruta que coincide con el frontend
+    @PatchMapping("/{id}/read")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Marcar una notificación específica como leída")
     public ResponseEntity<?> markAsRead(
@@ -122,7 +124,7 @@ public class NotificationController {
 
         } catch (Exception e) {
             log.error("Error marcando notificación como leída: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of(
+            return ResponseEntity.internalServerError().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
                     "timestamp", LocalDateTime.now()
@@ -166,7 +168,7 @@ public class NotificationController {
                         notifMap.put("title", notification.getTitle());
                         notifMap.put("message", notification.getMessage());
                         notifMap.put("type", notification.getType());
-                        notifMap.put("isRead", notification.getIsRead()); // Usar getter
+                        notifMap.put("isRead", notification.getIsRead());
                         notifMap.put("createdAt", notification.getCreatedAt());
                         if (notification.getOrder() != null) {
                             notifMap.put("orderNumber", notification.getOrder().getOrderNumber());
@@ -189,5 +191,23 @@ public class NotificationController {
                     "timestamp", LocalDateTime.now()
             ));
         }
+    }
+
+    // ✅ MANTENER el endpoint POST para compatibilidad
+    @PostMapping("/mark-all-read")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Marcar todas las notificaciones como leídas (compatibilidad)")
+    public ResponseEntity<?> markAllAsReadPost(@AuthenticationPrincipal UserDetails userDetails) {
+        return markAllAsRead(userDetails);
+    }
+
+    // ✅ MANTENER el endpoint POST para compatibilidad
+    @PostMapping("/{id}/mark-read")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Marcar una notificación específica como leída (compatibilidad)")
+    public ResponseEntity<?> markAsReadPost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return markAsRead(id, userDetails);
     }
 }

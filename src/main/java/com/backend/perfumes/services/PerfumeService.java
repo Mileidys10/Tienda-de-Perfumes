@@ -25,17 +25,20 @@ public class PerfumeService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final AutoModerationService autoModerationService;
+    private final SupabaseStorageService supabaseStorageService;
 
     public PerfumeService(PerfumeRepository perfumeRepository,
                           BrandRepository brandRepository,
                           CategoryRepository categoryRepository,
                           UserRepository userRepository,
-                          AutoModerationService autoModerationService) {
+                          AutoModerationService autoModerationService,
+                          SupabaseStorageService supabaseStorageService) {
         this.perfumeRepository = perfumeRepository;
         this.brandRepository = brandRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.autoModerationService = autoModerationService;
+        this.supabaseStorageService = supabaseStorageService;
     }
 
     @Transactional
@@ -49,10 +52,12 @@ public class PerfumeService {
         perfume.setGenre(dto.getGenre());
         perfume.setReleaseDate(dto.getReleaseDate());
 
+        // Usar Supabase para imágenes
         if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
             perfume.setImageUrl(dto.getImageUrl());
         } else {
-            perfume.setImageUrl("/uploads/default-perfume.jpg");
+            // Imagen por defecto de Supabase
+            perfume.setImageUrl(supabaseStorageService.getDefaultImageUrl());
         }
 
         Brand brand = brandRepository.findById(dto.getBrandId())
@@ -79,6 +84,101 @@ public class PerfumeService {
         return perfumeRepository.save(perfume);
     }
 
+    @Transactional
+    public Perfume actualizarPerfume(Long id, PerfumeDTO dto, String username) {
+        Perfume existente = perfumeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+
+        if (!existente.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
+            throw new RuntimeException("No tienes permisos para actualizar este perfume");
+        }
+
+        // Guardar imagen anterior para posible eliminación
+        String oldImageUrl = existente.getImageUrl();
+
+        existente.setName(dto.getName());
+        existente.setDescription(dto.getDescription());
+        existente.setPrice(dto.getPrice());
+        existente.setStock(dto.getStock());
+        existente.setSizeMl(dto.getSizeMl());
+        existente.setGenre(dto.getGenre());
+        existente.setReleaseDate(dto.getReleaseDate());
+
+        // Actualizar imagen si es diferente
+        if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty() &&
+                !dto.getImageUrl().equals(oldImageUrl)) {
+            existente.setImageUrl(dto.getImageUrl());
+
+            // Eliminar imagen anterior si no es la por defecto
+            if (!supabaseStorageService.isDefaultImage(oldImageUrl)) {
+                supabaseStorageService.deleteImage(oldImageUrl);
+            }
+        }
+
+        ModerationResult result = autoModerationService.moderatePerfume(
+                existente.getName(), existente.getDescription(), existente.getPrice(),
+                existente.getStock(), existente.getImageUrl());
+
+        existente.setModerationStatus(result.getStatus());
+        existente.setRejectionReason(result.getReason());
+        existente.setModerationDate(LocalDateTime.now());
+        existente.setModeratedBy("AUTO_MODERATOR");
+
+        return perfumeRepository.save(existente);
+    }
+
+    @Transactional
+    public void eliminarPerfume(Long id, String username) {
+        Perfume perfume = perfumeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+
+        if (!perfume.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
+            throw new RuntimeException("No tienes permisos para eliminar este perfume");
+        }
+
+        // Eliminar imagen de Supabase si no es la por defecto
+        String imageUrl = perfume.getImageUrl();
+        if (!supabaseStorageService.isDefaultImage(imageUrl)) {
+            supabaseStorageService.deleteImage(imageUrl);
+        }
+
+        perfumeRepository.delete(perfume);
+    }
+
+    // Método específico para actualizar solo la imagen
+    @Transactional
+    public Perfume updatePerfumeImage(Long perfumeId, String imageUrl, String username) {
+        Perfume perfume = perfumeRepository.findById(perfumeId)
+                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+
+        if (!perfume.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
+            throw new RuntimeException("No tienes permisos para editar este perfume");
+        }
+
+        // Guardar imagen anterior
+        String oldImageUrl = perfume.getImageUrl();
+
+        // Actualizar imagen
+        perfume.setImageUrl(imageUrl);
+
+        // Eliminar imagen anterior si no es la por defecto
+        if (!supabaseStorageService.isDefaultImage(oldImageUrl)) {
+            supabaseStorageService.deleteImage(oldImageUrl);
+        }
+
+        return perfumeRepository.save(perfume);
+    }
+
+    // Resto de métodos se mantienen igual...
     public Page<Perfume> listarPerfume(Pageable pageable, String filtro) {
         return perfumeRepository.findByModerationStatusAndFiltro(ModerationStatus.APPROVED, filtro, pageable);
     }
@@ -119,57 +219,6 @@ public class PerfumeService {
     public Perfume obtenerPerfumePorId(Long id) {
         return perfumeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-    }
-
-    @Transactional
-    public Perfume actualizarPerfume(Long id, PerfumeDTO dto, String username) {
-        Perfume existente = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
-
-        if (!existente.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
-            throw new RuntimeException("No tienes permisos para actualizar este perfume");
-        }
-
-        existente.setName(dto.getName());
-        existente.setDescription(dto.getDescription());
-        existente.setPrice(dto.getPrice());
-        existente.setStock(dto.getStock());
-        existente.setSizeMl(dto.getSizeMl());
-        existente.setGenre(dto.getGenre());
-        existente.setReleaseDate(dto.getReleaseDate());
-
-        if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
-            existente.setImageUrl(dto.getImageUrl());
-        }
-
-        ModerationResult result = autoModerationService.moderatePerfume(
-                existente.getName(), existente.getDescription(), existente.getPrice(),
-                existente.getStock(), existente.getImageUrl());
-
-        existente.setModerationStatus(result.getStatus());
-        existente.setRejectionReason(result.getReason());
-        existente.setModerationDate(LocalDateTime.now());
-        existente.setModeratedBy("AUTO_MODERATOR");
-
-        return perfumeRepository.save(existente);
-    }
-
-    @Transactional
-    public void eliminarPerfume(Long id, String username) {
-        Perfume perfume = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
-
-        if (!perfume.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
-            throw new RuntimeException("No tienes permisos para eliminar este perfume");
-        }
-
-        perfumeRepository.delete(perfume);
     }
 
     public Perfume aprobarPerfume(Long id, String adminUsername) {

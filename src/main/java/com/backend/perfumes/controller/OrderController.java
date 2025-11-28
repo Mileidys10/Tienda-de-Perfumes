@@ -3,11 +3,13 @@ package com.backend.perfumes.controller;
 import com.backend.perfumes.dto.CheckoutRequestDTO;
 import com.backend.perfumes.dto.OrderResponseDTO;
 import com.backend.perfumes.services.OrderService;
+import com.backend.perfumes.services.PaymentGatewayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,9 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+
+    @Autowired
+    private PaymentGatewayService paymentGatewayService;
 
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
@@ -216,4 +221,53 @@ public class OrderController {
                 "message", "Order service is running"
         ));
     }
+
+    @PostMapping("/simulate-payment")
+    @Operation(summary = "Simular pago para testing")
+    public ResponseEntity<?> simulatePayment(@RequestBody Map<String, Object> request) {
+        try {
+            String paymentIntentId = (String) request.get("paymentIntentId");
+            Boolean success = (Boolean) request.get("success");
+
+            if (paymentIntentId == null || success == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "paymentIntentId y success son requeridos",
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            // Simular el pago
+            boolean simulated = paymentGatewayService.simulatePayment(paymentIntentId, success);
+
+            if (!simulated) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Pago no encontrado",
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            // Si fue exitoso, confirmar el pago
+            if (success) {
+                orderService.confirmPayment(paymentIntentId);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", success ? "Pago simulado y confirmado exitosamente" : "Pago simulado como fallido",
+                    "timestamp", LocalDateTime.now()
+            ));
+
+        } catch (Exception e) {
+            log.error("Error simulando pago: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
+
 }

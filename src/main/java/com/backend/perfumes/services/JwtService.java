@@ -26,6 +26,9 @@ public class JwtService {
     @Value("${app.jwt.expirationMs}")
     private long jwtExpirationMs;
 
+    @Value("${app.jwt.refreshExpirationMs:86400000}") // 24 horas por defecto
+    private long refreshExpirationMs;
+
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -69,6 +72,7 @@ public class JwtService {
         extraClaims.putIfAbsent("id", user.getId());
         extraClaims.putIfAbsent("email", user.getEmail());
         extraClaims.putIfAbsent("rol", user.getRole().name());
+        extraClaims.put("type", "access"); // Tipo de token
 
         return Jwts.builder()
                 .setClaims(extraClaims)
@@ -79,8 +83,48 @@ public class JwtService {
                 .compact();
     }
 
+    // Nuevo método para generar refresh token
+    public String generateRefreshToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", user.getId());
+        claims.put("email", user.getEmail());
+        claims.put("type", "refresh"); // Tipo de token
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Método para validar si un token es un refresh token
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return "refresh".equals(claims.get("type"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // Método para validar si un token es un access token
+    public boolean isAccessToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return "access".equals(claims.get("type"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
+    }
+
+    public long getRefreshExpirationMs() {
+        return refreshExpirationMs;
     }
 
     public String generateVerificationToken(User user) {
