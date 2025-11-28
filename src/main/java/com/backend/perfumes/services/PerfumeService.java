@@ -99,6 +99,7 @@ public class PerfumeService {
         // Guardar imagen anterior para posible eliminación
         String oldImageUrl = existente.getImageUrl();
 
+        // ACTUALIZAR TODOS LOS CAMPOS
         existente.setName(dto.getName());
         existente.setDescription(dto.getDescription());
         existente.setPrice(dto.getPrice());
@@ -107,17 +108,31 @@ public class PerfumeService {
         existente.setGenre(dto.getGenre());
         existente.setReleaseDate(dto.getReleaseDate());
 
-        // Actualizar imagen si es diferente
-        if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty() &&
-                !dto.getImageUrl().equals(oldImageUrl)) {
+        // Actualizar marca y categoría
+        if (dto.getBrandId() != null) {
+            Brand brand = brandRepository.findById(dto.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
+            existente.setBrand(brand);
+        }
+
+        if (dto.getCategoryId() != null) {
+            Category category = categoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+            existente.setCategory(category);
+        }
+
+        // Actualizar imagen SIEMPRE que venga en el DTO
+        if (dto.getImageUrl() != null && !dto.getImageUrl().trim().isEmpty()) {
             existente.setImageUrl(dto.getImageUrl());
 
-            // Eliminar imagen anterior si no es la por defecto
-            if (!supabaseStorageService.isDefaultImage(oldImageUrl)) {
+            // Eliminar imagen anterior si cambió y no es la por defecto
+            if (!dto.getImageUrl().equals(oldImageUrl) &&
+                    !supabaseStorageService.isDefaultImage(oldImageUrl)) {
                 supabaseStorageService.deleteImage(oldImageUrl);
             }
         }
 
+        // Re-moderar
         ModerationResult result = autoModerationService.moderatePerfume(
                 existente.getName(), existente.getDescription(), existente.getPrice(),
                 existente.getStock(), existente.getImageUrl());
@@ -127,6 +142,7 @@ public class PerfumeService {
         existente.setModerationDate(LocalDateTime.now());
         existente.setModeratedBy("AUTO_MODERATOR");
 
+        // GUARDAR Y RETORNAR
         return perfumeRepository.save(existente);
     }
 
