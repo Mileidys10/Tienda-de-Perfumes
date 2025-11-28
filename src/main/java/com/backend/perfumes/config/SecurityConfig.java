@@ -118,6 +118,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/notifications/**").hasAnyRole("CLIENTE", "VENDEDOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/orders/simulate-payment").hasAnyRole("VENDEDOR", "ADMIN", "CLIENTE")
                         // CUALQUIER OTRA PETICIÓN REQUIERE AUTENTICACIÓN
                         .anyRequest().authenticated()
                 )
