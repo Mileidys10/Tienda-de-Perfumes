@@ -184,32 +184,7 @@ public class OrderController {
         }
     }
 
-    @PostMapping("/{orderNumber}/confirm-payment")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Confirmar pago exitoso (para webhooks o callbacks)")
-    public ResponseEntity<?> confirmPayment(
-            @PathVariable String orderNumber,
-            @AuthenticationPrincipal UserDetails userDetails) {
 
-        try {
-            log.info("Confirmación de pago recibida para orden: {}", orderNumber);
-
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", "Pago confirmado exitosamente para orden: " + orderNumber,
-                    "timestamp", LocalDateTime.now()
-            ));
-
-        } catch (Exception e) {
-            log.error("Error confirmando pago para orden: {}", orderNumber, e);
-
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
 
     @GetMapping("/health")
     @Operation(summary = "Verificar estado del servicio de órdenes")

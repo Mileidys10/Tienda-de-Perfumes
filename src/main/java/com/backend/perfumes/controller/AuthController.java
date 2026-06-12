@@ -38,6 +38,11 @@ public class AuthController {
         this.jwtService = jwtService;
         this.emailService = emailService;
     }
+    private static final String INTERNAL_SERVER_ERROR_MSG="error interno del servidor";
+    private static final String SUCCESSFULL_REGISTER_MSG="Usuario registrado correctamente. Por favor verifica tu email antes de iniciar sesión.";
+
+
+
 
     @Operation(
             summary = "Login de usuarios (ADMIN, VENDEDOR, CLIENTE)",
@@ -85,7 +90,7 @@ public class AuthController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ErrorReponseBuilder.buildErrorResponse(
-                            "Error interno del servidor",
+                            INTERNAL_SERVER_ERROR_MSG,
                             HttpStatus.INTERNAL_SERVER_ERROR
                     ));
         }
@@ -101,7 +106,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of(
                             "status", "success",
-                            "message", "Usuario registrado correctamente. Por favor verifica tu email antes de iniciar sesión.",
+                            "message", SUCCESSFULL_REGISTER_MSG,
                             "data", Map.of(
                                     "id", newUser.getId(),
                                     "email", newUser.getEmail(),

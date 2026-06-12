@@ -201,8 +201,9 @@ public class OrderService {
             item.setUnitPrice(BigDecimal.valueOf(calc.getPerfume().getPrice()));
             item.setTotalPrice(calc.getTotalPrice());
 
+            order.getItems().add(item);
             orderItemRepository.save(item);
-
+//cambiar que no se descuente a menos que el pago sea exitoso
             Perfume perfume = calc.getPerfume();
             perfume.setStock(perfume.getStock() - calc.getQuantity());
             perfumeRepository.save(perfume);

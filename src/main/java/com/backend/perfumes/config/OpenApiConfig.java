@@ -24,7 +24,7 @@ public class OpenApiConfig {
                         .description("API para Venta de Perfumes Online")
                         .contact(new Contact()
                                 .name("Mileidys")
-                                .email("mileidys@gmai.com"))
+                                .email("agamezmileidys@gmail.com"))
                         .license(new License().name("Apache 2.0").url("http://www.apache.org/licenses/LICENSE-2.0")))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()

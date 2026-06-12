@@ -39,6 +39,14 @@ public class PerfumeController {
         this.perfumeService = perfumeService;
     }
 
+    private static final String VALIDATIONS_ERRORS_MSG="errores de validacion";
+    private  static final String PERFUME_CREATED_MSG="perfume creado exitosamente";
+    private static final String DElETED_PERFUME_MSG="perfume eliminado exitosamente";
+    private static final String UPDATED_PERFUME_MSG="perfume actualizado exitosamente";
+    private static final String APPROVED_MSG="perfume aprobado exitosamente";
+    private  static final String AUTOMATIC_APPROVED_MSG="perfume automaticamente aprobado exitosamente";
+    private static final String PERFUME_UNDER_REVIEW_MSG="perfume en revision";
+    private static final String PERFUME_DENIED_MSG ="perfume rechazado exitosamente";
 
     @Operation(summary = "Obtener todos los perfumes aprobados", description = "Endpoint público para listar perfumes")
     @GetMapping
@@ -92,13 +100,13 @@ public class PerfumeController {
                     .collect(Collectors.toMap(
                             FieldError::getField,
                             fieldError -> fieldError.getDefaultMessage() != null ?
-                                    fieldError.getDefaultMessage() : "Error de validación"
+                                    fieldError.getDefaultMessage() : VALIDATIONS_ERRORS_MSG
                     ));
 
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "status", "error",
-                            "message", "Errores de validación",
+                            "message", VALIDATIONS_ERRORS_MSG,
                             "errors", errores,
                             "timestamp", LocalDateTime.now()
                     ));
@@ -111,13 +119,13 @@ public class PerfumeController {
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
-            response.put("message", "Perfume creado exitosamente");
+            response.put("message", PERFUME_CREATED_MSG);
             response.put("data", perfumeDTO);
             response.put("moderation", Map.of(
                     "status", perfume.getModerationStatus(),
                     "message", perfume.getModerationStatus() == ModerationStatus.APPROVED ?
                             "Aprobado automáticamente" :
-                            perfume.getRejectionReason() != null ? perfume.getRejectionReason() : "En revisión"
+                            perfume.getRejectionReason() != null ? perfume.getRejectionReason() : PERFUME_DENIED_MSG
             ));
             response.put("timestamp", LocalDateTime.now());
 
@@ -238,7 +246,7 @@ public class PerfumeController {
             Perfume perfume = perfumeService.aprobarPerfume(id, userDetails.getUsername());
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Perfume aprobado exitosamente",
+                    "message", APPROVED_MSG,
                     "data", convertToDto(perfume)
             ));
         } catch (Exception e) {
@@ -267,7 +275,7 @@ public class PerfumeController {
             Perfume perfume = perfumeService.rechazarPerfume(id, motivo, userDetails.getUsername());
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Perfume rechazado exitosamente",
+                    "message", PERFUME_DENIED_MSG,
                     "data", convertToDto(perfume)
             ));
         } catch (Exception e) {
@@ -322,13 +330,13 @@ public class PerfumeController {
                     .collect(Collectors.toMap(
                             FieldError::getField,
                             fieldError -> fieldError.getDefaultMessage() != null ?
-                                    fieldError.getDefaultMessage() : "Error de validación"
+                                    fieldError.getDefaultMessage() : VALIDATIONS_ERRORS_MSG
                     ));
 
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "status", "error",
-                            "message", "Errores de validación",
+                            "message", VALIDATIONS_ERRORS_MSG,
                             "errors", errores
                     ));
         }
@@ -338,13 +346,13 @@ public class PerfumeController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Perfume actualizado exitosamente",
+                    "message", UPDATED_PERFUME_MSG,
                     "data", convertToDto(perfumeActualizado),
                     "moderation", Map.of(
                             "status", perfumeActualizado.getModerationStatus(),
                             "message", perfumeActualizado.getModerationStatus() == ModerationStatus.APPROVED ?
-                                    "Aprobado automáticamente" :
-                                    perfumeActualizado.getRejectionReason() != null ? perfumeActualizado.getRejectionReason() : "En revisión"
+                                    AUTOMATIC_APPROVED_MSG :
+                                    perfumeActualizado.getRejectionReason() != null ? perfumeActualizado.getRejectionReason() : PERFUME_UNDER_REVIEW_MSG
                     ),
                     "timestamp", LocalDateTime.now()
             ));
@@ -369,7 +377,7 @@ public class PerfumeController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Perfume eliminado exitosamente",
+                    "message", DElETED_PERFUME_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 

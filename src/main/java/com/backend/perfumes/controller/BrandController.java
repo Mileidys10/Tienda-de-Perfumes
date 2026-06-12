@@ -61,7 +61,13 @@ public class BrandController {
 
         return dto;
     }
+private static final String BRAND_CREATED_MSG="Marca creada exitosamente";
+    private static final String BRAND_CREATED_W_IMAGE_MSG="Marca con imagen creada exitosamente";
+    private static final String BRAND_AUTOMATIC_APPROVED_MSG ="Aprobada automáticamente";
+    private static final String BRAND_APPROVED_MSG="Marca aprobada exitosamente";
 
+
+    private static final String BRAND_UNDER_REVIEW="En revisión";
 
     @PostMapping("/mis-marcas")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
@@ -79,13 +85,13 @@ public class BrandController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Marca creada exitosamente",
+                    "message", BRAND_CREATED_MSG,
                     "data", nueva,
                     "moderation", Map.of(
                             "status", nueva.getModerationStatus(),
                             "message", nueva.getModerationStatus() == ModerationStatus.APPROVED ?
-                                    "Aprobada automáticamente" :
-                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : "En revisión"
+                                    BRAND_AUTOMATIC_APPROVED_MSG :
+                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : BRAND_UNDER_REVIEW
                     )
             ));
         } catch (Exception e) {
@@ -112,13 +118,13 @@ public class BrandController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Marca con imagen creada exitosamente",
+                    "message", BRAND_CREATED_W_IMAGE_MSG,
                     "data", nueva,
                     "moderation", Map.of(
                             "status", nueva.getModerationStatus(),
                             "message", nueva.getModerationStatus() == ModerationStatus.APPROVED ?
-                                    "Aprobada automáticamente" :
-                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : "En revisión"
+                                    BRAND_AUTOMATIC_APPROVED_MSG :
+                                    nueva.getRejectionReason() != null ? nueva.getRejectionReason() : BRAND_UNDER_REVIEW
                     )
             ));
         } catch (Exception e) {
@@ -354,7 +360,7 @@ public class BrandController {
             Brand marca = brandService.aprobarBrand(id, userDetails.getUsername());
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Marca aprobada exitosamente",
+                    "message", BRAND_APPROVED_MSG,
                     "data", marca
             ));
         } catch (Exception e) {

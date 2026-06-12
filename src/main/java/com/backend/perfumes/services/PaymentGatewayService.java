@@ -57,7 +57,9 @@ public class PaymentGatewayService {
     }
 
     private String buildPaymentUrl(String paymentIntentId) {
-        return "/api/payments/simulate-payment?payment_id=" + paymentIntentId;
+        return "/api/payments/simulate-payment?payment_id="
+                + paymentIntentId
+                + "&success=true";
     }
 
     public boolean verifyPayment(String paymentIntentId) {

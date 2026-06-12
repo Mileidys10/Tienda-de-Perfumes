@@ -32,6 +32,11 @@ public class SellerOrderController {
 
     private final OrderService orderService;
 
+     private static final String  STATUS_FIELD_REQUIRED= "El campo 'status' es requerido";
+    private static final String INVALID_STATUS_ORDER= "Estado de orden inválido";
+    private static final String UPDATED_ORDER_STATUS="Estado de orden actualizado exitosamente";
+
+
     @GetMapping
     @PreAuthorize("hasAnyRole('VENDEDOR', 'ADMIN')")
     @Operation(summary = "Obtener órdenes del vendedor")
@@ -105,7 +110,7 @@ public class SellerOrderController {
             if (statusStr == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "El campo 'status' es requerido",
+                        "message", STATUS_FIELD_REQUIRED,
                         "timestamp", LocalDateTime.now()
                 ));
             }
@@ -115,7 +120,7 @@ public class SellerOrderController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Estado de orden actualizado exitosamente",
+                    "message", UPDATED_ORDER_STATUS,
                     "data", Map.of(
                             "orderId", updatedOrder.getId(),
                             "orderNumber", updatedOrder.getOrderNumber(),
@@ -127,7 +132,7 @@ public class SellerOrderController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
-                    "message", "Estado de orden inválido",
+                    "message", INVALID_STATUS_ORDER,
                     "timestamp", LocalDateTime.now()
             ));
         } catch (Exception e) {

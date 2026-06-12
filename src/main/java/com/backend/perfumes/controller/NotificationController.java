@@ -27,7 +27,8 @@ import java.util.Map;
 public class NotificationController {
 
     private final NotificationService notificationService;
-
+    private static final String ALL_NOTIFICATIONS_READ_MSG="Todas las notificaciones marcadas como leídas";
+    private static final String NOTIFICATION_READ_MSG="Notificación marcada como leída";
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener notificaciones del usuario")
@@ -91,7 +92,7 @@ public class NotificationController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Todas las notificaciones marcadas como leídas",
+                    "message", ALL_NOTIFICATIONS_READ_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 
@@ -118,7 +119,7 @@ public class NotificationController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Notificación marcada como leída",
+                    "message", NOTIFICATION_READ_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 

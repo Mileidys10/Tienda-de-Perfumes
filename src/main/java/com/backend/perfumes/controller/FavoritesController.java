@@ -28,6 +28,10 @@ public class FavoritesController {
 
     private final FavoritesService favoritesService;
 
+    private static final String PERFUME_ADDED_TO_FAVORITES_MSG ="Perfume agregado a favoritos";
+    private static final String PERFUME_REMOVE_OF_FAVORITES_MSG ="Perfume eliminado de favoritos";
+
+    
     @PostMapping("/{perfumeId}")
     @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Agregar perfume a favoritos")
@@ -40,7 +44,7 @@ public class FavoritesController {
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
-            response.put("message", "Perfume agregado a favoritos");
+            response.put("message", PERFUME_ADDED_TO_FAVORITES_MSG);
             response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
@@ -66,7 +70,7 @@ public class FavoritesController {
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
-            response.put("message", "Perfume removido de favoritos");
+            response.put("message", PERFUME_REMOVE_OF_FAVORITES_MSG);
             response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);

@@ -38,9 +38,28 @@ public class AuthService {
     }
 
 
+
     private String generateOtp() {
         return String.valueOf((int)(Math.random() * 900000) + 100000);
     }
+
+                 private static final String INACTIVE_ACCOUNT_MSG= "Tu cuenta está desactivada. Contacta al administrador.";
+    private static final String INVALID_CREDENTIALS_MSG=" CREDENCIALES INVÁLIDAS";
+    private static final String PERSONAL_ERROR_MSEG ="ERROR PERSONALIZADO";
+    private static final String  AUTHENTICATION_ERROR_MSG= "=== ERROR EN AUTENTICACIÓN:";
+    private static final String SERVER_ERROR_MSG="Error en el servidor durante la autenticación";
+    private static final String   REGISTER_STARTED_MSG=     "=== INICIANDO REGISTRO ===";
+    private static final String  EMAIL_IN_USE_MSG="El email ya está registrado";
+    private static final String  SUCCESSFULLY_REGISTER_EMAIL_MSG= "=== REGISTRO EXITOSO ===";
+
+
+
+
+
+
+
+
+
 
     public User authenticate(String email, String password) {
         try {

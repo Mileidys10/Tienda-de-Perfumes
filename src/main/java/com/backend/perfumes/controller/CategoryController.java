@@ -20,6 +20,11 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
 
+    private static final String CATEGORY_CREATED_MSG="Categoría creada exitosamente";
+    private static final String CATEGORY_DELETED_MSG="Categoría eliminada correctamente.";
+
+
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<?> crearCategory(@RequestBody Category category) {
@@ -34,7 +39,7 @@ public class CategoryController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Categoría creada exitosamente",
+                    "message", CATEGORY_CREATED_MSG,
                     "data", responseData
             ));
         } catch (Exception e) {
@@ -80,6 +85,6 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarCategory(@PathVariable Long id) {
         categoryService.eliminarCategory(id);
-        return ResponseEntity.ok("Categoría eliminada correctamente.");
+        return ResponseEntity.ok(CATEGORY_DELETED_MSG);
     }
 }
