@@ -10,19 +10,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Payments", description = "Simulación de pagos para testing")
+@Tag(name = "Payments", description = "Simulacion de pagos para testing")
 public class PaymentSimulationController {
 
     private final PaymentGatewayService paymentGatewayService;
-
     private final OrderService orderService;
+
+    private static final String PAYMENT_INTENT_AND_SUCCESS_REQUIRED = "paymentIntentId y success son requeridos";
+    private static final String PAYMENT_NOT_FOUND_MSG = "Pago no encontrado";
+    private static final String PAYMENT_ID_REQUIRED_MSG = "payment_id es requerido";
+    private static final String PAYMENT_CONFIRMED_SUCCESS_MSG = "Pago confirmado exitosamente";
+    private static final String PAYMENT_FAILED_MSG = "Pago no verificado o fallido";
 
     @PostMapping("/simulate-payment")
     @Operation(summary = "Simular pago para testing")
@@ -34,29 +38,27 @@ public class PaymentSimulationController {
             if (paymentIntentId == null || success == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "paymentIntentId y success son requeridos",
+                        "message", PAYMENT_INTENT_AND_SUCCESS_REQUIRED,
                         "timestamp", LocalDateTime.now()
                 ));
             }
 
-            // Simular el pago
             boolean simulated = paymentGatewayService.simulatePayment(paymentIntentId, success);
 
             if (!simulated) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "Pago no encontrado",
+                        "message", PAYMENT_NOT_FOUND_MSG,
                         "timestamp", LocalDateTime.now()
                 ));
             }
 
-            // ✅ CORREGIDO: Siempre llamar a confirmPayment cuando success=true
             if (success) {
                 try {
                     orderService.confirmPayment(paymentIntentId);
-                    log.info("✅ Pago confirmado exitosamente: {}", paymentIntentId);
+                    log.info("Pago confirmado exitosamente: {}", paymentIntentId);
                 } catch (Exception e) {
-                    log.error("❌ Error confirmando pago: {}", e.getMessage(), e);
+                    log.error("Error confirmando pago {}: {}", paymentIntentId, e.getMessage(), e);
                     return ResponseEntity.badRequest().body(Map.of(
                             "status", "error",
                             "message", "Pago simulado pero error confirmando: " + e.getMessage(),
@@ -72,7 +74,7 @@ public class PaymentSimulationController {
             ));
 
         } catch (Exception e) {
-            log.error("Error simulando pago: {}", e.getMessage());
+            log.error("Error simulando pago: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -89,7 +91,7 @@ public class PaymentSimulationController {
             if (paymentId == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "payment_id es requerido",
+                        "message", PAYMENT_ID_REQUIRED_MSG,
                         "timestamp", LocalDateTime.now()
                 ));
             }
@@ -97,23 +99,22 @@ public class PaymentSimulationController {
             boolean paymentVerified = paymentGatewayService.verifyPayment(paymentId);
 
             if (paymentVerified) {
-
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
-                        "message", "Pago confirmado exitosamente",
+                        "message", PAYMENT_CONFIRMED_SUCCESS_MSG,
                         "paymentId", paymentId,
                         "timestamp", LocalDateTime.now()
                 ));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "Pago no verificado o fallido",
+                        "message", PAYMENT_FAILED_MSG,
                         "timestamp", LocalDateTime.now()
                 ));
             }
 
         } catch (Exception e) {
-            log.error("Error confirmando pago: {}", e.getMessage());
+            log.error("Error confirmando pago: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -131,7 +132,7 @@ public class PaymentSimulationController {
             if (payment == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "Pago no encontrado",
+                        "message", PAYMENT_NOT_FOUND_MSG,
                         "timestamp", LocalDateTime.now()
                 ));
             }
@@ -149,6 +150,7 @@ public class PaymentSimulationController {
             ));
 
         } catch (Exception e) {
+            log.error("Error obteniendo estado de pago {}: {}", paymentId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),

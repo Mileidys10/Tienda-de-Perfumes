@@ -23,12 +23,14 @@ import java.util.Map;
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Notifications", description = "Gestión de notificaciones")
+@Tag(name = "Notifications", description = "Gestion de notificaciones")
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private static final String ALL_NOTIFICATIONS_READ_MSG="Todas las notificaciones marcadas como leídas";
-    private static final String NOTIFICATION_READ_MSG="Notificación marcada como leída";
+
+    private static final String ALL_NOTIFICATIONS_READ_MSG = "Todas las notificaciones marcadas como leidas";
+    private static final String NOTIFICATION_READ_MSG = "Notificacion marcada como leida";
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener notificaciones del usuario")
@@ -36,12 +38,10 @@ public class NotificationController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<Notification> notificationsPage = notificationService.getUserNotifications(userDetails.getUsername(), pageable);
 
-            // Convertir a DTO usando getters
             Page<Map<String, Object>> notifications = notificationsPage.map(notification -> {
                 Map<String, Object> notifMap = new LinkedHashMap<>();
                 notifMap.put("id", notification.getId());
@@ -82,10 +82,9 @@ public class NotificationController {
         }
     }
 
-    // ✅ CORREGIDO: Cambiar a PATCH y ruta que coincide con el frontend
     @PatchMapping("/read-all")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Marcar todas las notificaciones como leídas")
+    @Operation(summary = "Marcar todas las notificaciones como leidas")
     public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             notificationService.markAllAsRead(userDetails.getUsername());
@@ -97,7 +96,7 @@ public class NotificationController {
             ));
 
         } catch (Exception e) {
-            log.error("Error marcando todas las notificaciones como leídas: {}", e.getMessage(), e);
+            log.error("Error marcando todas las notificaciones como leidas: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -106,14 +105,12 @@ public class NotificationController {
         }
     }
 
-    // ✅ CORREGIDO: Cambiar a PATCH y ruta que coincide con el frontend
     @PatchMapping("/{id}/read")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Marcar una notificación específica como leída")
+    @Operation(summary = "Marcar una notificacion especifica como leida")
     public ResponseEntity<?> markAsRead(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
             notificationService.markAsRead(id, userDetails.getUsername());
 
@@ -124,7 +121,7 @@ public class NotificationController {
             ));
 
         } catch (Exception e) {
-            log.error("Error marcando notificación como leída: {}", e.getMessage(), e);
+            log.error("Error marcando notificacion como leida: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -135,7 +132,7 @@ public class NotificationController {
 
     @GetMapping("/unread-count")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Obtener conteo de notificaciones no leídas")
+    @Operation(summary = "Obtener conteo de notificaciones no leidas")
     public ResponseEntity<?> getUnreadCount(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             long unreadCount = notificationService.getUnreadCount(userDetails.getUsername());
@@ -147,7 +144,7 @@ public class NotificationController {
             ));
 
         } catch (Exception e) {
-            log.error("Error obteniendo conteo de notificaciones no leídas: {}", e.getMessage(), e);
+            log.error("Error obteniendo conteo de notificaciones no leidas: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -194,18 +191,16 @@ public class NotificationController {
         }
     }
 
-    // ✅ MANTENER el endpoint POST para compatibilidad
     @PostMapping("/mark-all-read")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Marcar todas las notificaciones como leídas (compatibilidad)")
+    @Operation(summary = "Marcar todas las notificaciones como leidas (compatibilidad)")
     public ResponseEntity<?> markAllAsReadPost(@AuthenticationPrincipal UserDetails userDetails) {
         return markAllAsRead(userDetails);
     }
 
-    // ✅ MANTENER el endpoint POST para compatibilidad
     @PostMapping("/{id}/mark-read")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Marcar una notificación específica como leída (compatibilidad)")
+    @Operation(summary = "Marcar una notificacion especifica como leida (compatibilidad)")
     public ResponseEntity<?> markAsReadPost(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -19,27 +18,24 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/seller/orders")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Seller Orders", description = "Gestión de órdenes para vendedores")
+@Tag(name = "Seller Orders", description = "Gestion de ordenes para vendedores")
 public class SellerOrderController {
 
     private final OrderService orderService;
 
-     private static final String  STATUS_FIELD_REQUIRED= "El campo 'status' es requerido";
-    private static final String INVALID_STATUS_ORDER= "Estado de orden inválido";
-    private static final String UPDATED_ORDER_STATUS="Estado de orden actualizado exitosamente";
-
+    private static final String STATUS_FIELD_REQUIRED = "El campo 'status' es requerido";
+    private static final String INVALID_STATUS_ORDER = "Estado de orden invalido";
+    private static final String UPDATED_ORDER_STATUS = "Estado de orden actualizado exitosamente";
 
     @GetMapping
     @PreAuthorize("hasAnyRole('VENDEDOR', 'ADMIN')")
-    @Operation(summary = "Obtener órdenes del vendedor")
+    @Operation(summary = "Obtener ordenes del vendedor")
     public ResponseEntity<?> getSellerOrders(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
@@ -64,6 +60,7 @@ public class SellerOrderController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error obteniendo ordenes de vendedor: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -74,7 +71,7 @@ public class SellerOrderController {
 
     @GetMapping("/{orderId}")
     @PreAuthorize("hasAnyRole('VENDEDOR', 'ADMIN')")
-    @Operation(summary = "Obtener detalles de una orden específica para el vendedor")
+    @Operation(summary = "Obtener detalles de una orden especifica para el vendedor")
     public ResponseEntity<?> getSellerOrderDetail(
             @PathVariable Long orderId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -89,6 +86,7 @@ public class SellerOrderController {
             ));
 
         } catch (Exception e) {
+            log.error("Error obteniendo detalle de orden {}: {}", orderId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -118,6 +116,8 @@ public class SellerOrderController {
             OrderStatus newStatus = OrderStatus.valueOf(statusStr.toUpperCase());
             Order updatedOrder = orderService.updateOrderStatus(orderId, newStatus, userDetails.getUsername());
 
+            log.info("Estado de orden {} actualizado a {} por {}", orderId, newStatus, userDetails.getUsername());
+
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", UPDATED_ORDER_STATUS,
@@ -130,12 +130,14 @@ public class SellerOrderController {
             ));
 
         } catch (IllegalArgumentException e) {
+            log.warn("Estado de orden invalido: {}", request.get("status"));
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", INVALID_STATUS_ORDER,
                     "timestamp", LocalDateTime.now()
             ));
         } catch (Exception e) {
+            log.error("Error actualizando estado de orden {}: {}", orderId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),

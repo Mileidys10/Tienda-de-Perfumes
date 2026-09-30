@@ -1,14 +1,14 @@
 package com.backend.perfumes.services;
 
 import com.backend.perfumes.model.User;
+import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+@Service
 public class AccountTokenService {
+
     private static final String DELETE_PREFIX = "del_";
-
-
-
 
     public String generateVerificationToken(User user) {
         return UUID.randomUUID().toString();
@@ -27,9 +27,12 @@ public class AccountTokenService {
     }
 
     public boolean isValidUUID(String token) {
+        if (token == null) {
+            return false;
+        }
         try {
             if (token.startsWith(DELETE_PREFIX)) {
-                UUID.fromString(token.substring(4));
+                UUID.fromString(token.substring(DELETE_PREFIX.length()));
             } else {
                 UUID.fromString(token);
             }
@@ -39,6 +42,3 @@ public class AccountTokenService {
         }
     }
 }
-
-
-

@@ -1,4 +1,3 @@
-// FavoritesController.java
 package com.backend.perfumes.controller;
 
 import com.backend.perfumes.services.FavoritesService;
@@ -23,23 +22,22 @@ import java.util.Map;
 @RequestMapping("/api/favorites")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Favorites", description = "Gestión de perfumes favoritos")
+@Tag(name = "Favorites", description = "Gestion de perfumes favoritos")
 public class FavoritesController {
 
     private final FavoritesService favoritesService;
 
-    private static final String PERFUME_ADDED_TO_FAVORITES_MSG ="Perfume agregado a favoritos";
-    private static final String PERFUME_REMOVE_OF_FAVORITES_MSG ="Perfume eliminado de favoritos";
+    private static final String PERFUME_ADDED_TO_FAVORITES_MSG = "Perfume agregado a favoritos";
+    private static final String PERFUME_REMOVE_OF_FAVORITES_MSG = "Perfume eliminado de favoritos";
 
-    
     @PostMapping("/{perfumeId}")
     @PreAuthorize("hasRole('CLIENTE')")
     @Operation(summary = "Agregar perfume a favoritos")
     public ResponseEntity<?> addToFavorites(
             @PathVariable Long perfumeId,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
+            log.info("Agregando perfume ID {} a favoritos de {}", perfumeId, userDetails.getUsername());
             boolean success = favoritesService.addToFavorites(perfumeId, userDetails.getUsername());
 
             Map<String, Object> response = new LinkedHashMap<>();
@@ -50,6 +48,7 @@ public class FavoritesController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al agregar favorito: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -64,8 +63,8 @@ public class FavoritesController {
     public ResponseEntity<?> removeFromFavorites(
             @PathVariable Long perfumeId,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
+            log.info("Eliminando perfume ID {} de favoritos de {}", perfumeId, userDetails.getUsername());
             boolean success = favoritesService.removeFromFavorites(perfumeId, userDetails.getUsername());
 
             Map<String, Object> response = new LinkedHashMap<>();
@@ -76,6 +75,7 @@ public class FavoritesController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al remover favorito: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -91,7 +91,6 @@ public class FavoritesController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<Object> favorites = favoritesService.getUserFavorites(userDetails.getUsername(), pageable)
@@ -122,6 +121,7 @@ public class FavoritesController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al obtener favoritos: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -132,21 +132,21 @@ public class FavoritesController {
 
     @GetMapping("/{perfumeId}/is-favorite")
     @PreAuthorize("hasRole('CLIENTE')")
-    @Operation(summary = "Verificar si un perfume está en favoritos")
+    @Operation(summary = "Verificar si un perfume esta en favoritos")
     public ResponseEntity<?> isFavorite(
             @PathVariable Long perfumeId,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
-            boolean isFavorite = favoritesService.isFavorite(perfumeId, userDetails.getUsername());
+            boolean isFav = favoritesService.isFavorite(perfumeId, userDetails.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "isFavorite", isFavorite,
+                    "isFavorite", isFav,
                     "timestamp", LocalDateTime.now()
             ));
 
         } catch (Exception e) {
+            log.error("Error al verificar favorito: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),

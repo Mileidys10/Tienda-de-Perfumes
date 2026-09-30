@@ -8,6 +8,7 @@ import com.backend.perfumes.services.PerfumeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,26 +30,24 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/perfumes")
+@RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Perfumes", description = "Gestión de perfumes")
+@Tag(name = "Perfumes", description = "Gestion de perfumes")
 public class PerfumeController {
 
     private final PerfumeService perfumeService;
 
-    public PerfumeController(PerfumeService perfumeService) {
-        this.perfumeService = perfumeService;
-    }
+    private static final String VALIDATIONS_ERRORS_MSG = "Errores de validacion";
+    private static final String PERFUME_CREATED_MSG = "Perfume creado exitosamente";
+    private static final String DELETED_PERFUME_MSG = "Perfume eliminado exitosamente";
+    private static final String UPDATED_PERFUME_MSG = "Perfume actualizado exitosamente";
+    private static final String APPROVED_MSG = "Perfume aprobado exitosamente";
+    private static final String AUTOMATIC_APPROVED_MSG = "Aprobado automaticamente";
+    private static final String PERFUME_UNDER_REVIEW_MSG = "Perfume en revision";
+    private static final String PERFUME_DENIED_MSG = "Perfume rechazado exitosamente";
+    private static final String REASON_REQUIRED_MSG = "Se requiere un motivo para rechazar";
 
-    private static final String VALIDATIONS_ERRORS_MSG="errores de validacion";
-    private  static final String PERFUME_CREATED_MSG="perfume creado exitosamente";
-    private static final String DElETED_PERFUME_MSG="perfume eliminado exitosamente";
-    private static final String UPDATED_PERFUME_MSG="perfume actualizado exitosamente";
-    private static final String APPROVED_MSG="perfume aprobado exitosamente";
-    private  static final String AUTOMATIC_APPROVED_MSG="perfume automaticamente aprobado exitosamente";
-    private static final String PERFUME_UNDER_REVIEW_MSG="perfume en revision";
-    private static final String PERFUME_DENIED_MSG ="perfume rechazado exitosamente";
-
-    @Operation(summary = "Obtener todos los perfumes aprobados", description = "Endpoint público para listar perfumes")
+    @Operation(summary = "Obtener todos los perfumes aprobados", description = "Endpoint publico para listar perfumes")
     @GetMapping
     public ResponseEntity<?> listarPerfumes(
             Pageable pageable,
@@ -70,7 +69,7 @@ public class PerfumeController {
         ));
     }
 
-    @Operation(summary = "Obtener perfume público por ID")
+    @Operation(summary = "Obtener perfume publico por ID")
     @GetMapping("/public/{id}")
     public ResponseEntity<?> obtenerPerfumePublico(@PathVariable Long id) {
         try {
@@ -80,6 +79,7 @@ public class PerfumeController {
                     "data", convertToDto(perfume)
             ));
         } catch (Exception e) {
+            log.error("Error obteniendo perfume publico ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage()
@@ -87,9 +87,9 @@ public class PerfumeController {
         }
     }
 
-
     @PostMapping("/nuevo")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+    @Operation(summary = "Crear nuevo perfume")
     public ResponseEntity<?> crearPerfume(
             @Valid @RequestBody PerfumeDTO dto,
             BindingResult bindingResult,
@@ -113,6 +113,7 @@ public class PerfumeController {
         }
 
         try {
+            log.info("Creando perfume '{}' para vendedor: {}", dto.getName(), userDetails.getUsername());
             Perfume perfume = perfumeService.savePerfume(dto, userDetails.getUsername());
 
             PerfumeDTO perfumeDTO = convertToDto(perfume);
@@ -124,7 +125,7 @@ public class PerfumeController {
             response.put("moderation", Map.of(
                     "status", perfume.getModerationStatus(),
                     "message", perfume.getModerationStatus() == ModerationStatus.APPROVED ?
-                            "Aprobado automáticamente" :
+                            AUTOMATIC_APPROVED_MSG :
                             perfume.getRejectionReason() != null ? perfume.getRejectionReason() : PERFUME_DENIED_MSG
             ));
             response.put("timestamp", LocalDateTime.now());
@@ -132,6 +133,7 @@ public class PerfumeController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (RuntimeException e) {
+            log.error("Error creando perfume: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -186,6 +188,7 @@ public class PerfumeController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
+            log.error("Error listando mis perfumes: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -194,9 +197,9 @@ public class PerfumeController {
         }
     }
 
-
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Listar todos los perfumes para admin")
     public ResponseEntity<?> listarTodosPerfumesAdmin(
             Pageable pageable,
             @RequestParam(value = "filtro", required = false) String filtro) {
@@ -219,6 +222,7 @@ public class PerfumeController {
 
     @GetMapping("/admin/pendientes")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Listar perfumes pendientes de aprobacion")
     public ResponseEntity<?> listarPerfumesPendientes() {
         try {
             List<Perfume> perfumes = perfumeService.obtenerPerfumesPendientes();
@@ -230,6 +234,7 @@ public class PerfumeController {
                     "total", perfumes.size()
             ));
         } catch (Exception e) {
+            log.error("Error listando perfumes pendientes: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage()
@@ -239,10 +244,12 @@ public class PerfumeController {
 
     @PostMapping("/admin/{id}/aprobar")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Aprobar un perfume")
     public ResponseEntity<?> aprobarPerfume(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            log.info("Aprobando perfume ID {} por admin: {}", id, userDetails.getUsername());
             Perfume perfume = perfumeService.aprobarPerfume(id, userDetails.getUsername());
             return ResponseEntity.ok(Map.of(
                     "status", "success",
@@ -250,6 +257,7 @@ public class PerfumeController {
                     "data", convertToDto(perfume)
             ));
         } catch (Exception e) {
+            log.error("Error aprobando perfume ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage()
@@ -259,6 +267,7 @@ public class PerfumeController {
 
     @PostMapping("/admin/{id}/rechazar")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Rechazar un perfume")
     public ResponseEntity<?> rechazarPerfume(
             @PathVariable Long id,
             @RequestBody Map<String, String> request,
@@ -268,10 +277,11 @@ public class PerfumeController {
             if (motivo == null || motivo.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "Se requiere un motivo para rechazar"
+                        "message", REASON_REQUIRED_MSG
                 ));
             }
 
+            log.info("Rechazando perfume ID {} por admin: {} con motivo: {}", id, userDetails.getUsername(), motivo);
             Perfume perfume = perfumeService.rechazarPerfume(id, motivo, userDetails.getUsername());
             return ResponseEntity.ok(Map.of(
                     "status", "success",
@@ -279,13 +289,13 @@ public class PerfumeController {
                     "data", convertToDto(perfume)
             ));
         } catch (Exception e) {
+            log.error("Error rechazando perfume ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage()
             ));
         }
     }
-
 
     private PerfumeDTO convertToDto(Perfume perfume) {
         PerfumeDTO dto = new PerfumeDTO();
@@ -319,6 +329,7 @@ public class PerfumeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+    @Operation(summary = "Actualizar perfume existente")
     public ResponseEntity<?> actualizarPerfume(
             @PathVariable Long id,
             @Valid @RequestBody PerfumeDTO dto,
@@ -358,6 +369,7 @@ public class PerfumeController {
             ));
 
         } catch (RuntimeException e) {
+            log.error("Error actualizando perfume ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -368,20 +380,22 @@ public class PerfumeController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+    @Operation(summary = "Eliminar perfume")
     public ResponseEntity<?> eliminarPerfume(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
+            log.info("Eliminando perfume ID {} por usuario: {}", id, userDetails.getUsername());
             perfumeService.eliminarPerfume(id, userDetails.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", DElETED_PERFUME_MSG,
+                    "message", DELETED_PERFUME_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 
         } catch (RuntimeException e) {
+            log.error("Error eliminando perfume ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
