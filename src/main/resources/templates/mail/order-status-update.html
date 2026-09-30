@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+
+    <div th:style="'background: linear-gradient(135deg, ' + ${statusColor} + ' 0%, ' + ${statusColor} + ' 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;'">
+        <h1 style="color: white; margin: 0;">
+            <span th:text="${statusIcon}"></span> Actualización de Orden
+        </h1>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+
+        <h2 th:style="'color:' + ${statusColor} + '; margin-top:0;'">
+            Orden #<span th:text="${orderNumber}"></span>
+        </h2>
+
+        <div th:style="'background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid ' + ${statusColor}">
+            <p style="font-size: 18px; margin: 0;">
+                <strong>Nuevo Estado:</strong>
+            </p>
+
+            <p th:style="'font-size: 24px; color:' + ${statusColor} + '; font-weight: bold; margin: 10px 0;'">
+                <span th:text="${statusIcon}"></span>
+                <span th:text="${newStatus}"></span>
+            </p>
+
+            <p style="color: #666; margin: 10px 0 0 0;">
+                <small>
+                    Estado anterior:
+                    <span th:text="${oldStatus}"></span>
+                </small>
+            </p>
+        </div>
+
+        <div style="background: #e8f4f8; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <p style="margin: 0;" th:text="${statusMessage}"></p>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h3 th:style="'border-bottom: 2px solid ' + ${statusColor} + '; padding-bottom: 10px;'">
+                Resumen de tu Orden
+            </h3>
+
+            <table style="width: 100%; margin: 10px 0;">
+                <tr>
+                    <td style="padding: 5px;">Total de productos:</td>
+                    <td style="padding: 5px; text-align: right; font-weight: bold;"
+                        th:text="${totalProducts}">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 5px;">Total a pagar:</td>
+                    <td th:style="'padding: 5px; text-align: right; font-weight: bold; color:' + ${statusColor}">
+                        $<span th:text="${total}"></span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 5px;">Fecha de orden:</td>
+                    <td style="padding: 5px; text-align: right;"
+                        th:text="${createdAt}">
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+            <p style="margin: 0;">
+                <strong>📍 Dirección de Envío:</strong>
+            </p>
+
+            <p style="margin: 5px 0 0 0;" th:text="${shippingAddress}"></p>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; color: #666;">
+            <p>Gracias por tu preferencia</p>
+            <p style="font-size: 12px;">
+                Este es un correo automático, por favor no responder.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

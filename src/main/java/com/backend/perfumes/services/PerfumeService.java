@@ -8,6 +8,8 @@ import com.backend.perfumes.repositories.CategoryRepository;
 import com.backend.perfumes.repositories.PerfumeRepository;
 import com.backend.perfumes.repositories.UserRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,9 +17,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class PerfumeService {
 
     private final PerfumeRepository perfumeRepository;
@@ -27,20 +30,63 @@ public class PerfumeService {
     private final AutoModerationService autoModerationService;
     private final SupabaseStorageService supabaseStorageService;
 
-    public PerfumeService(PerfumeRepository perfumeRepository,
-                          BrandRepository brandRepository,
-                          CategoryRepository categoryRepository,
-                          UserRepository userRepository,
-                          AutoModerationService autoModerationService,
-                          SupabaseStorageService supabaseStorageService) {
-        this.perfumeRepository = perfumeRepository;
-        this.brandRepository = brandRepository;
-        this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
-        this.autoModerationService = autoModerationService;
-        this.supabaseStorageService = supabaseStorageService;
+    // Constantes de moderación y auditoría
+    private static final String AUTO_MODERATOR = "AUTO_MODERATOR";
+
+    // Constantes de mensajes de error de dominio
+    private static final String PERFUME_NOT_FOUND_MSG = "Perfume no encontrado";
+    private static final String BRAND_NOT_FOUND_PREFIX_MSG = "Marca no encontrada con id: ";
+    private static final String CATEGORY_NOT_FOUND_PREFIX_MSG = "Categoría no encontrada con id: ";
+    private static final String USER_NOT_FOUND_PREFIX_MSG = "Usuario no encontrado: ";
+    private static final String BRAND_NOT_FOUND_OR_NOT_OWNER_MSG = "Marca no encontrada o no pertenece al usuario";
+    private static final String PERFUME_NOT_FOUND_OR_NOT_APPROVED_MSG = "Perfume no encontrado o no está aprobado";
+    private static final String PERMISSION_DENIED_UPDATE_MSG = "No tienes permisos para actualizar este perfume";
+    private static final String PERMISSION_DENIED_DELETE_MSG = "No tienes permisos para eliminar este perfume";
+
+    // Constantes para logs
+    private static final String LOG_PERFUME_SAVED = "Perfume '{}' creado y registrado con ID: {} por usuario: {}";
+    private static final String LOG_PERFUME_UPDATED = "Perfume '{}' (ID: {}) actualizado por usuario: {}";
+    private static final String LOG_PERFUME_DELETED = "Perfume ID: {} eliminado por usuario: {}";
+    private static final String LOG_PERFUME_APPROVED = "Perfume ID: {} aprobado por admin: {}";
+    private static final String LOG_PERFUME_REJECTED = "Perfume ID: {} rechazado por admin: {}. Motivo: {}";
+
+    // -------------------------------------------------------------------------
+    // Helper Methods (DRY)
+    // -------------------------------------------------------------------------
+    private User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_PREFIX_MSG + username));
     }
 
+    private Brand getBrandById(Long brandId) {
+        return brandRepository.findById(brandId)
+                .orElseThrow(() -> new IllegalArgumentException(BRAND_NOT_FOUND_PREFIX_MSG + brandId));
+    }
+
+    private Category getCategoryById(Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException(CATEGORY_NOT_FOUND_PREFIX_MSG + categoryId));
+    }
+
+    private Perfume getPerfumeById(Long id) {
+        return perfumeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(PERFUME_NOT_FOUND_MSG));
+    }
+
+    private void moderatePerfume(Perfume perfume) {
+        ModerationResult result = autoModerationService.moderatePerfume(
+                perfume.getName(), perfume.getDescription(), perfume.getPrice(),
+                perfume.getStock(), perfume.getImageUrl());
+
+        perfume.setModerationStatus(result.getStatus());
+        perfume.setRejectionReason(result.getReason());
+        perfume.setModerationDate(LocalDateTime.now());
+        perfume.setModeratedBy(AUTO_MODERATOR);
+    }
+
+    // -------------------------------------------------------------------------
+    // Operaciones Transaccionales de Dominio
+    // -------------------------------------------------------------------------
     @Transactional
     public Perfume savePerfume(PerfumeDTO dto, String username) {
         Perfume perfume = new Perfume();
@@ -56,50 +102,32 @@ public class PerfumeService {
         if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
             perfume.setImageUrl(dto.getImageUrl());
         } else {
-            // Imagen por defecto de Supabase
             perfume.setImageUrl(supabaseStorageService.getDefaultImageUrl());
         }
 
-        Brand brand = brandRepository.findById(dto.getBrandId())
-                .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada con id: " + dto.getBrandId()));
-        perfume.setBrand(brand);
+        perfume.setBrand(getBrandById(dto.getBrandId()));
+        perfume.setCategory(getCategoryById(dto.getCategoryId()));
+        perfume.setUser(getUserByUsername(username));
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con id: " + dto.getCategoryId()));
-        perfume.setCategory(category);
+        moderatePerfume(perfume);
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
-        perfume.setUser(user);
-
-        ModerationResult result = autoModerationService.moderatePerfume(
-                perfume.getName(), perfume.getDescription(), perfume.getPrice(),
-                perfume.getStock(), perfume.getImageUrl());
-
-        perfume.setModerationStatus(result.getStatus());
-        perfume.setRejectionReason(result.getReason());
-        perfume.setModerationDate(LocalDateTime.now());
-        perfume.setModeratedBy("AUTO_MODERATOR");
-
-        return perfumeRepository.save(perfume);
+        Perfume saved = perfumeRepository.save(perfume);
+        log.info(LOG_PERFUME_SAVED, saved.getName(), saved.getId(), username);
+        return saved;
     }
 
     @Transactional
     public Perfume actualizarPerfume(Long id, PerfumeDTO dto, String username) {
-        Perfume existente = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        Perfume existente = getPerfumeById(id);
+        User user = getUserByUsername(username);
 
         if (!existente.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
-            throw new RuntimeException("No tienes permisos para actualizar este perfume");
+            throw new RuntimeException(PERMISSION_DENIED_UPDATE_MSG);
         }
 
-        // Guardar imagen anterior para posible eliminación
         String oldImageUrl = existente.getImageUrl();
 
-        // ACTUALIZAR TODOS LOS CAMPOS
+        // Actualizar campos básicos
         existente.setName(dto.getName());
         existente.setDescription(dto.getDescription());
         existente.setPrice(dto.getPrice());
@@ -110,83 +138,59 @@ public class PerfumeService {
 
         // Actualizar marca y categoría
         if (dto.getBrandId() != null) {
-            Brand brand = brandRepository.findById(dto.getBrandId())
-                    .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
-            existente.setBrand(brand);
+            existente.setBrand(getBrandById(dto.getBrandId()));
         }
 
         if (dto.getCategoryId() != null) {
-            Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
-            existente.setCategory(category);
+            existente.setCategory(getCategoryById(dto.getCategoryId()));
         }
 
-        // Actualizar imagen SIEMPRE que venga en el DTO
+        // Actualizar imagen si viene en el DTO
         if (dto.getImageUrl() != null && !dto.getImageUrl().trim().isEmpty()) {
             existente.setImageUrl(dto.getImageUrl());
 
-            // Eliminar imagen anterior si cambió y no es la por defecto
-            if (!dto.getImageUrl().equals(oldImageUrl) &&
-                    !supabaseStorageService.isDefaultImage(oldImageUrl)) {
+            if (!dto.getImageUrl().equals(oldImageUrl) && !supabaseStorageService.isDefaultImage(oldImageUrl)) {
                 supabaseStorageService.deleteImage(oldImageUrl);
             }
         }
 
-        // Re-moderar
-        ModerationResult result = autoModerationService.moderatePerfume(
-                existente.getName(), existente.getDescription(), existente.getPrice(),
-                existente.getStock(), existente.getImageUrl());
+        moderatePerfume(existente);
 
-        existente.setModerationStatus(result.getStatus());
-        existente.setRejectionReason(result.getReason());
-        existente.setModerationDate(LocalDateTime.now());
-        existente.setModeratedBy("AUTO_MODERATOR");
-
-        // GUARDAR Y RETORNAR
-        return perfumeRepository.save(existente);
+        Perfume updated = perfumeRepository.save(existente);
+        log.info(LOG_PERFUME_UPDATED, updated.getName(), updated.getId(), username);
+        return updated;
     }
 
     @Transactional
     public void eliminarPerfume(Long id, String username) {
-        Perfume perfume = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        Perfume perfume = getPerfumeById(id);
+        User user = getUserByUsername(username);
 
         if (!perfume.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
-            throw new RuntimeException("No tienes permisos para eliminar este perfume");
+            throw new RuntimeException(PERMISSION_DENIED_DELETE_MSG);
         }
 
-        // Eliminar imagen de Supabase si no es la por defecto
         String imageUrl = perfume.getImageUrl();
         if (!supabaseStorageService.isDefaultImage(imageUrl)) {
             supabaseStorageService.deleteImage(imageUrl);
         }
 
         perfumeRepository.delete(perfume);
+        log.info(LOG_PERFUME_DELETED, id, username);
     }
 
-    // Método específico para actualizar solo la imagen
     @Transactional
     public Perfume updatePerfumeImage(Long perfumeId, String imageUrl, String username) {
-        Perfume perfume = perfumeRepository.findById(perfumeId)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        Perfume perfume = getPerfumeById(perfumeId);
+        User user = getUserByUsername(username);
 
         if (!perfume.getUser().getId().equals(user.getId()) && !user.getRole().equals(Role.ADMIN)) {
-            throw new RuntimeException("No tienes permisos para editar este perfume");
+            throw new RuntimeException(PERMISSION_DENIED_UPDATE_MSG);
         }
 
-        // Guardar imagen anterior
         String oldImageUrl = perfume.getImageUrl();
-
-        // Actualizar imagen
         perfume.setImageUrl(imageUrl);
 
-        // Eliminar imagen anterior si no es la por defecto
         if (!supabaseStorageService.isDefaultImage(oldImageUrl)) {
             supabaseStorageService.deleteImage(oldImageUrl);
         }
@@ -194,14 +198,15 @@ public class PerfumeService {
         return perfumeRepository.save(perfume);
     }
 
-    // Resto de métodos se mantienen igual...
+    // -------------------------------------------------------------------------
+    // Consultas y Moderación
+    // -------------------------------------------------------------------------
     public Page<Perfume> listarPerfume(Pageable pageable, String filtro) {
         return perfumeRepository.findByModerationStatusAndFiltro(ModerationStatus.APPROVED, filtro, pageable);
     }
 
     public Page<Perfume> listarPerfumePorUsuario(String username, Pageable pageable, String filtro) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
         return perfumeRepository.findByUserAndFiltro(user, filtro, pageable);
     }
 
@@ -210,11 +215,10 @@ public class PerfumeService {
     }
 
     public List<Perfume> obtenerPerfumesPorMarcaYUsuario(Long brandId, String username, String filtro) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
 
         Brand brand = brandRepository.findByIdAndUser(brandId, user)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada o no pertenece al usuario"));
+                .orElseThrow(() -> new RuntimeException(BRAND_NOT_FOUND_OR_NOT_OWNER_MSG));
 
         if (filtro != null && !filtro.trim().isEmpty()) {
             return perfumeRepository.findByBrandAndUserWithFiltro(brandId, user, filtro);
@@ -229,32 +233,35 @@ public class PerfumeService {
 
     public Perfume obtenerPerfumePublico(Long id) {
         return perfumeRepository.findByIdAndModerationStatus(id, ModerationStatus.APPROVED)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado o no está aprobado"));
+                .orElseThrow(() -> new RuntimeException(PERFUME_NOT_FOUND_OR_NOT_APPROVED_MSG));
     }
 
     public Perfume obtenerPerfumePorId(Long id) {
-        return perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+        return getPerfumeById(id);
     }
 
     public Perfume aprobarPerfume(Long id, String adminUsername) {
-        Perfume perfume = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+        Perfume perfume = getPerfumeById(id);
         perfume.setModerationStatus(ModerationStatus.APPROVED);
         perfume.setRejectionReason(null);
         perfume.setModerationDate(LocalDateTime.now());
         perfume.setModeratedBy(adminUsername);
-        return perfumeRepository.save(perfume);
+
+        Perfume saved = perfumeRepository.save(perfume);
+        log.info(LOG_PERFUME_APPROVED, id, adminUsername);
+        return saved;
     }
 
     public Perfume rechazarPerfume(Long id, String motivo, String adminUsername) {
-        Perfume perfume = perfumeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+        Perfume perfume = getPerfumeById(id);
         perfume.setModerationStatus(ModerationStatus.REJECTED);
         perfume.setRejectionReason(motivo);
         perfume.setModerationDate(LocalDateTime.now());
         perfume.setModeratedBy(adminUsername);
-        return perfumeRepository.save(perfume);
+
+        Perfume saved = perfumeRepository.save(perfume);
+        log.info(LOG_PERFUME_REJECTED, id, adminUsername, motivo);
+        return saved;
     }
 
     public List<Perfume> obtenerPerfumesPendientes() {
@@ -266,8 +273,7 @@ public class PerfumeService {
     }
 
     public Map<String, Long> obtenerEstadisticasModeracion(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
 
         long total = perfumeRepository.countByUser(user);
         long aprobados = perfumeRepository.countByUserAndModerationStatus(user, ModerationStatus.APPROVED);

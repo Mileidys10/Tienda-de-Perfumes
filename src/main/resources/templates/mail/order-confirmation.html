@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">¡Gracias por tu compra!</h1>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+
+        <h2 style="color: #667eea; margin-top: 0;">
+            Orden #<span th:text="${orderNumber}"></span>
+        </h2>
+
+        <p>
+            <strong>Estado:</strong>
+            <span style="color: #28a745;" th:text="${status}"></span>
+        </p>
+
+        <p>
+            <strong>Fecha:</strong>
+            <span th:text="${createdAt}"></span>
+        </p>
+
+        <h3 style="border-bottom: 2px solid #667eea; padding-bottom: 10px;">
+            Productos
+        </h3>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+            <tr style="background: #667eea; color: white;">
+                <th style="padding: 10px; text-align: left;">Producto</th>
+                <th style="padding: 10px; text-align: center;">Cantidad</th>
+                <th style="padding: 10px; text-align: right;">Precio Unit.</th>
+                <th style="padding: 10px; text-align: right;">Total</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="item : ${items}">
+                <td style="padding: 10px; border-bottom: 1px solid #eee;"
+                    th:text="${item.perfume.name}">
+                </td>
+
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;"
+                    th:text="${item.quantity}">
+                </td>
+
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+                    $<span th:text="${item.unitPrice}"></span>
+                </td>
+
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+                    $<span th:text="${item.totalPrice}"></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 5px;">
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 5px;">Subtotal:</td>
+                    <td style="padding: 5px; text-align: right;">
+                        $<span th:text="${subtotal}"></span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 5px;">Impuestos:</td>
+                    <td style="padding: 5px; text-align: right;">
+                        $<span th:text="${tax}"></span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 5px;">Envío:</td>
+                    <td style="padding: 5px; text-align: right;">
+                        $<span th:text="${shipping}"></span>
+                    </td>
+                </tr>
+
+                <tr style="border-top: 2px solid #667eea;">
+                    <td style="padding: 10px; font-size: 18px; font-weight: bold;">
+                        TOTAL:
+                    </td>
+                    <td style="padding: 10px; text-align: right; font-size: 18px; font-weight: bold; color: #667eea;">
+                    $<span th:text="${#numbers.formatDecimal(total,1,2)}"></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #e8f4f8;
+                    border-left: 4px solid #667eea; border-radius: 5px;">
+            <h4 style="margin-top: 0; color: #667eea;">
+                📍 Dirección de Envío
+            </h4>
+
+            <p style="margin: 0;" th:text="${shippingAddress}"></p>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center; color: #666;">
+            <p>Recibirás actualizaciones sobre tu orden a este correo.</p>
+            <p style="font-size: 12px;">Si tienes alguna pregunta, contacta con nosotros.</p>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

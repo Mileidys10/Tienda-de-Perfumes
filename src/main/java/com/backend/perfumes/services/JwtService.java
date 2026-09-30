@@ -1,5 +1,6 @@
 package com.backend.perfumes.services;
 
+import com.backend.perfumes.model.TokenType;
 import com.backend.perfumes.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -26,17 +27,39 @@ public class JwtService {
     @Value("${app.jwt.expirationMs}")
     private long jwtExpirationMs;
 
-    @Value("${app.jwt.refreshExpirationMs:86400000}") // 24 horas por defecto
+    @Value("${app.jwt.refreshExpirationMs:86400000}")
     private long refreshExpirationMs;
 
-    private Key getSignInKey() {
+    private Key getSigninKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    private static final String CLAIM_ID = "id";
+    private static final String CLAIM_EMAIL = "email";
+    private static final String CLAIM_ROLE = "rol";
+    private static final String CLAIM_TYPE = "type";
+
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+
+    private static final String DELETE_PREFIX = "del_";
+
+
+    private String buildToken(Map<String, Object> claims, User user, long expiration) {
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getUsername())
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + expiration))
+                .signWith(getSigninKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(getSignInKey())
+                .setSigningKey(getSigninKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -65,41 +88,32 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, User user) {
-        if (extraClaims == null) {
-            extraClaims = new HashMap<>();
+        Map<String, Object> claims = new HashMap<>();
+
+        if (extraClaims != null) {
+            claims.putAll(extraClaims);
         }
 
-        extraClaims.putIfAbsent("id", user.getId());
-        extraClaims.putIfAbsent("email", user.getEmail());
-        extraClaims.putIfAbsent("rol", user.getRole().name());
-        extraClaims.put("type", "access"); // Tipo de token
 
-        return Jwts.builder()
-                .setClaims(extraClaims)
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
+        claims.put(CLAIM_ID, user.getId());
+        claims.put(CLAIM_EMAIL, user.getEmail());
+        claims.put(CLAIM_ROLE, user.getRole().name());
+        claims.put(CLAIM_TYPE, TokenType.ACCESS.name());
+
+        return buildToken(claims, user, jwtExpirationMs);
     }
 
-    // Nuevo método para generar refresh token
     public String generateRefreshToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
-        claims.put("email", user.getEmail());
-        claims.put("type", "refresh"); // Tipo de token
 
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
+
+        claims.put(CLAIM_ID, user.getId());
+        claims.put(CLAIM_EMAIL, user.getEmail());
+        claims.put(CLAIM_TYPE, TokenType.REFRESH.name());
+
+        return buildToken(claims, user, refreshExpirationMs);
     }
 
-    // Método para validar si un token es un refresh token
     public boolean isRefreshToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
@@ -109,7 +123,7 @@ public class JwtService {
         }
     }
 
-    // Método para validar si un token es un access token
+
     public boolean isAccessToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
@@ -119,40 +133,27 @@ public class JwtService {
         }
     }
 
-    public long getJwtExpirationMs() {
-        return jwtExpirationMs;
-    }
-
     public long getRefreshExpirationMs() {
         return refreshExpirationMs;
     }
 
-    public String generateVerificationToken(User user) {
-        return UUID.randomUUID().toString();
+    public long getJwtExpirationMs() {
+        return jwtExpirationMs;
     }
 
-    public String generateDeleteAccountToken(User user) {
-        return "del_" + UUID.randomUUID().toString();
-    }
-
-    public boolean isDeleteToken(String token) {
-        return token != null && token.startsWith("del_");
-    }
-
-    public boolean isVerificationToken(String token) {
-        return token != null && !token.startsWith("del_");
-    }
-
-    public boolean isValidUUID(String token) {
-        try {
-            if (token.startsWith("del_")) {
-                UUID.fromString(token.substring(4));
-            } else {
-                UUID.fromString(token);
-            }
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

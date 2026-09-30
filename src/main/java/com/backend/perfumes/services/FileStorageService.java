@@ -14,10 +14,13 @@ public class FileStorageService {
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
-
+    private static final String DEFAULT_BRAND_IMAGE_URL ="/uploads/default-brand.jpg";
+    private static final String DEFAULT_BRAND_PERFUME_IMAGE_URL ="/uploads/default-perfume.jpg";
+    private static final String EMPTY_FILE_MSG="el archivo esta vacio";
+    private static final String MAIN_FILE_URL="/uploads/";
     public String storeFile(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
-            throw new IOException("El archivo está vacío");
+            throw new IOException(EMPTY_FILE_MSG);
         }
 
         Path uploadPath = Paths.get(uploadDir);
@@ -30,22 +33,22 @@ public class FileStorageService {
 
         Files.copy(file.getInputStream(), filePath);
 
-        return "/uploads/" + fileName;
+        return MAIN_FILE_URL + fileName;
     }
 
     public void deleteFile(String fileUrl) throws IOException {
-        if (fileUrl != null && fileUrl.startsWith("/uploads/")) {
-            String fileName = fileUrl.substring("/uploads/".length());
+        if (fileUrl != null && fileUrl.startsWith(MAIN_FILE_URL)) {
+            String fileName = fileUrl.substring(MAIN_FILE_URL.length());
             Path filePath = Paths.get(uploadDir).resolve(fileName);
             Files.deleteIfExists(filePath);
         }
     }
 
     public String getDefaultBrandImageUrl() {
-        return "/uploads/default-brand.jpg";
+        return DEFAULT_BRAND_IMAGE_URL;
     }
 
     public String getDefaultPerfumeImageUrl() {
-        return "/uploads/default-perfume.jpg";
+        return DEFAULT_BRAND_PERFUME_IMAGE_URL;
     }
 }

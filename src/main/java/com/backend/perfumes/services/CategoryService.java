@@ -20,6 +20,8 @@ public class CategoryService {
         this.categoryRepository = categoryRepository;
         this.autoModerationService = autoModerationService;
     }
+    private static final String EXISTING_CATEGORY_MSG = "A category with that name already exists";
+    private  static final String NOT_FOUND_MSG = "Category with id %d not found";
 
     public Category crearCategory(Category category) {
         category.setId(null);
@@ -43,7 +45,7 @@ public class CategoryService {
         try {
             return categoryRepository.save(category);
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException("Ya existe una categoría con ese nombre.");
+            throw new IllegalArgumentException(EXISTING_CATEGORY_MSG);
         }
     }
 
@@ -57,12 +59,12 @@ public class CategoryService {
 
     public Category obtenerCategoryPorId(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_MSG));
     }
 
     public void eliminarCategory(Long id) {
         if (!categoryRepository.existsById(id)) {
-            throw new EntityNotFoundException("No existe la categoría con ID: " + id);
+            throw new EntityNotFoundException(NOT_FOUND_MSG);
         }
         categoryRepository.deleteById(id);
     }
