@@ -1,18 +1,47 @@
-services:
+﻿services:
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: perfumes_db
-
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: perfumes
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-
+      POSTGRES_DB: ${POSTGRES_DB:-perfumes}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
     ports:
       - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-perfumes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - perfumes-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: perfumes_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/perfumes
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-admin123}
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    networks:
+      - perfumes-net
 
 volumes:
   postgres_data:
+
+networks:
+  perfumes-net:
+    driver: bridge
