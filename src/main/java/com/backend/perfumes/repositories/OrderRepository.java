@@ -33,12 +33,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.user.username = :username ORDER BY o.createdAt DESC")
     Page<Order> findByUsername(@Param("username") String username, Pageable pageable);
 
-    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
-    Page<Order> findBySeller(@Param("sellerId") Long sellerId, Pageable pageable);
 
     @Query("SELECT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId AND o.id = :orderId")
     Optional<Order> findBySellerAndOrderId(@Param("sellerId") Long sellerId, @Param("orderId") Long orderId);
 
+
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId")
+    Page<Order> findBySeller(@Param("sellerId") Long sellerId, Pageable pageable);
+
     @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.perfume.user.id = :sellerId AND o.status = :status")
     Page<Order> findBySellerAndStatus(@Param("sellerId") Long sellerId, @Param("status") OrderStatus status, Pageable pageable);
+
+
+    @Query("SELECT COUNT(o) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId")
+    long countBySeller(@Param("sellerId") Long sellerId);
+
+    @Query("SELECT COUNT(o) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId AND o.status = :status")
+    long countBySellerAndStatus(@Param("sellerId") Long sellerId, @Param("status") OrderStatus status);
+
+    @Query("SELECT SUM(oi.totalPrice) FROM Order o JOIN o.items oi WHERE oi.perfume.user.id = :sellerId AND o.status = 'DELIVERED'")
+    Double getTotalRevenueBySeller(@Param("sellerId") Long sellerId);
 }

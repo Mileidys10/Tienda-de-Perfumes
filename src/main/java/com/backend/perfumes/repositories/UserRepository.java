@@ -16,9 +16,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPendingEmail(String pendingEmail);
     Optional<User> findByPendingEmailIsNotNull();
     boolean existsByUsername(String username);
-
-    @Query("SELECT u FROM User u WHERE u.verificationToken = :token")
-    Optional<User> findByVerificationToken(@Param("token") String token);
+    Optional<User> findByVerificationCode(String verificationCode);
+    Optional<User> findByDeletionCodeIsNotNull();
+    Optional <User>findByVerificationCodeIsNotNull();
 
     @Query("SELECT u FROM User u WHERE u.emailVerified = false")
     java.util.List<User> findUnverifiedUsers();

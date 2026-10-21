@@ -1,32 +1,22 @@
 package com.backend.perfumes.services;
 
-import com.backend.perfumes.model.Role;
-import com.backend.perfumes.model.User;
 import com.backend.perfumes.repositories.UserRepository;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class DataService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
-    public void init(){
-//        User admin = new User();
-//        admin.setEmail("mileidys@gmail.com");
-//        admin.setPassword(passwordEncoder.encode("admin123"));
-//        admin.setName("Mileidys");
-//        admin.setLastName("Agamez");
-//       admin.setActive(true);
-//       admin.setRole(Role.ADMIN);
-//       userRepository.save(admin);
+    public void init() {
+        log.debug("DataService inicializado.");
     }
-
 }

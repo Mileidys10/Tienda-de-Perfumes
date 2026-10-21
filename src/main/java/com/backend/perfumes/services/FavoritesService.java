@@ -24,18 +24,39 @@ public class FavoritesService {
     private final PerfumeRepository perfumeRepository;
     private final UserRepository userRepository;
 
+    private static final String USER_NOT_FOUND = "Usuario no encontrado";
+    private static final String PERFUME_NOT_FOUND = "Perfume no encontrado";
+    private static final String PERFUME_ALREADY_FAVORITE = "El perfume ya está en favoritos";
+    private static final String ERROR_ADD_FAVORITE = "Error al agregar a favoritos: ";
+    private static final String ERROR_REMOVE_FAVORITE = "Error al remover de favoritos: ";
+    private static final String LOG_ADD_FAVORITE = "Perfume {} agregado a favoritos por usuario {}";
+    private static final String LOG_REMOVE_FAVORITE = "Perfume {} removido de favoritos por usuario {}";
+    private static final String LOG_ERROR_ADD = "Error agregando a favoritos: {}";
+    private static final String LOG_ERROR_REMOVE = "Error removiendo de favoritos: {}";
+
+
+
+    private User findByUsername(String username) {
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+    }
+
+    private Perfume findById(Long perfumeId) {
+        return perfumeRepository.findById(perfumeId)
+                .orElseThrow(() -> new RuntimeException(PERFUME_NOT_FOUND ));
+    }
+
     @Transactional
     public boolean addToFavorites(Long perfumeId, String username) {
         try {
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            User user = findByUsername(username);
 
-            Perfume perfume = perfumeRepository.findById(perfumeId)
-                    .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+            Perfume perfume = findById(perfumeId);
 
             // Verificar si ya está en favoritos
             if (favoritesRepository.existsByUserAndPerfume(user, perfume)) {
-                throw new RuntimeException("El perfume ya está en favoritos");
+                throw new RuntimeException(PERFUME_ALREADY_FAVORITE);
             }
 
             Favorites favorite = new Favorites();
@@ -43,48 +64,43 @@ public class FavoritesService {
             favorite.setPerfume(perfume);
 
             favoritesRepository.save(favorite);
-            log.info("Perfume {} agregado a favoritos por usuario {}", perfumeId, username);
+            log.info(LOG_ADD_FAVORITE, perfumeId, username);
             return true;
 
         } catch (Exception e) {
-            log.error("Error agregando a favoritos: {}", e.getMessage());
-            throw new RuntimeException("Error al agregar a favoritos: " + e.getMessage());
+            log.error(LOG_ERROR_ADD, e.getMessage());
+            throw new RuntimeException(ERROR_ADD_FAVORITE + e.getMessage());
         }
     }
 
     @Transactional
     public boolean removeFromFavorites(Long perfumeId, String username) {
         try {
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            User user = findByUsername(username);
 
-            Perfume perfume = perfumeRepository.findById(perfumeId)
-                    .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+            Perfume perfume = findById(perfumeId);
 
             favoritesRepository.deleteByUserAndPerfume(user, perfume);
-            log.info("Perfume {} removido de favoritos por usuario {}", perfumeId, username);
+            log.info( LOG_REMOVE_FAVORITE, perfumeId, username);
             return true;
 
         } catch (Exception e) {
-            log.error("Error removiendo de favoritos: {}", e.getMessage());
-            throw new RuntimeException("Error al remover de favoritos: " + e.getMessage());
+            log.error(LOG_ERROR_REMOVE, e.getMessage());
+            throw new RuntimeException(ERROR_REMOVE_FAVORITE + e.getMessage());
         }
     }
 
     public Page<Perfume> getUserFavorites(String username, Pageable pageable) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        User user = findByUsername(username);
 
         return favoritesRepository.findFavoritePerfumesByUserId(user.getId(), pageable);
     }
 
     public boolean isFavorite(Long perfumeId, String username) {
         try {
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            User user = findByUsername(username);
 
-            Perfume perfume = perfumeRepository.findById(perfumeId)
-                    .orElseThrow(() -> new RuntimeException("Perfume no encontrado"));
+            Perfume perfume = findById(perfumeId);
 
             return favoritesRepository.existsByUserAndPerfume(user, perfume);
 
@@ -94,8 +110,7 @@ public class FavoritesService {
     }
 
     public long getFavoriteCount(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        User user = findByUsername(username);
 
         return favoritesRepository.countByUser(user);
     }

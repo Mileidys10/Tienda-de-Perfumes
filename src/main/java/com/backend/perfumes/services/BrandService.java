@@ -30,18 +30,50 @@ public class BrandService {
         this.autoModerationService = autoModerationService;
     }
 
+    private static final String USER_NOT_FOUND_MSG = "Usuario no encontrado: ";
+
+    private static final String AUTO_MODERATOR = "AUTO_MODERATOR";
+
+
+
+    private static final String BRAND_NOT_FOUND_OR_NOT_OWNER_MSG =
+            "Marca no encontrada o no pertenece al usuario";
+
+    private static final String BRAND_NOT_FOUND_OR_NOT_APPROVED_MSG =
+            "Marca no encontrada o no está aprobada";
+
+    private static final String BRAND_NOT_FOUND_MSG =
+            "Marca no encontrada";
+
+
+
+
+    private User getUserByUsername(String username){
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG + username));
+
+    }
+
+private void moderateBrand(Brand brand){
+    ModerationResult result = autoModerationService.moderateBrand(
+            brand.getName(), brand.getDescription(), brand.getImageUrl());
+
+    brand.setModerationStatus(result.getStatus());
+    brand.setRejectionReason(result.getReason());
+    brand.setModerationDate(LocalDateTime.now());
+    brand.setModeratedBy(AUTO_MODERATOR);
+
+}
+
+
     public Brand crearBrand(Brand brand, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+
+
+        User user = getUserByUsername(username);
         brand.setUser(user);
 
-        ModerationResult result = autoModerationService.moderateBrand(
-                brand.getName(), brand.getDescription(), brand.getImageUrl());
-
-        brand.setModerationStatus(result.getStatus());
-        brand.setRejectionReason(result.getReason());
-        brand.setModerationDate(LocalDateTime.now());
-        brand.setModeratedBy("AUTO_MODERATOR");
+        moderateBrand(brand);
 
         if (brand.getImageUrl() == null || brand.getImageUrl().isEmpty()) {
             brand.setImageUrl(fileStorageService.getDefaultBrandImageUrl());
@@ -51,37 +83,28 @@ public class BrandService {
     }
 
     public Brand crearBrandConImagen(Brand brand, String username, MultipartFile imagen) throws IOException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
         brand.setUser(user);
 
+
+
+      moderateBrand(brand);
         if (imagen != null && !imagen.isEmpty()) {
             String imageUrl = fileStorageService.storeFile(imagen);
             brand.setImageUrl(imageUrl);
         } else {
-            brand.setImageUrl("/uploads/default-brand.jpg");
+            brand.setImageUrl(fileStorageService.getDefaultBrandImageUrl());
         }
-
-        ModerationResult result = autoModerationService.moderateBrand(
-                brand.getName(), brand.getDescription(), brand.getImageUrl());
-
-        brand.setModerationStatus(result.getStatus());
-        brand.setRejectionReason(result.getReason());
-        brand.setModerationDate(LocalDateTime.now());
-        brand.setModeratedBy("AUTO_MODERATOR");
-
         return brandRepository.save(brand);
     }
 
     public List<Brand> listarBrandsPorUsuario(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
         return brandRepository.findByUser(user);
     }
 
     public List<Brand> listarBrandsPorUsuarioConFiltro(String username, String filtro) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
         return brandRepository.findByUserAndFiltro(user, filtro);
     }
 
@@ -94,15 +117,14 @@ public class BrandService {
     }
 
     public Brand obtenerBrandPorIdYUsuario(Long id, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        User user = getUserByUsername(username);
         return brandRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada o no pertenece al usuario"));
+                .orElseThrow(() -> new RuntimeException(BRAND_NOT_FOUND_OR_NOT_OWNER_MSG));
     }
 
     public Brand obtenerBrandPublica(Long id) {
         return brandRepository.findByIdAndModerationStatus(id, ModerationStatus.APPROVED)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada o no está aprobada"));
+                .orElseThrow(() -> new RuntimeException(BRAND_NOT_FOUND_OR_NOT_APPROVED_MSG));
     }
 
     public void eliminarBrand(Long id, String username) {
@@ -116,7 +138,7 @@ public class BrandService {
 
     public Brand obtenerBrandPorId(Long id) {
         return brandRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+                .orElseThrow(() -> new RuntimeException(BRAND_NOT_FOUND_MSG));
     }
 
     public Brand actualizarBrand(Long id, Brand brand) {
@@ -129,13 +151,7 @@ public class BrandService {
             existente.setImageUrl(brand.getImageUrl());
         }
 
-        ModerationResult result = autoModerationService.moderateBrand(
-                existente.getName(), existente.getDescription(), existente.getImageUrl());
-
-        existente.setModerationStatus(result.getStatus());
-        existente.setRejectionReason(result.getReason());
-        existente.setModerationDate(LocalDateTime.now());
-        existente.setModeratedBy("AUTO_MODERATOR");
+    moderateBrand(existente);
 
         return brandRepository.save(existente);
     }

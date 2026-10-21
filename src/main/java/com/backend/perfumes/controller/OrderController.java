@@ -3,6 +3,7 @@ package com.backend.perfumes.controller;
 import com.backend.perfumes.dto.CheckoutRequestDTO;
 import com.backend.perfumes.dto.OrderResponseDTO;
 import com.backend.perfumes.services.OrderService;
+import com.backend.perfumes.services.PaymentGatewayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,10 +26,17 @@ import java.util.Map;
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Orders", description = "Gestión de órdenes y pagos")
+@Tag(name = "Orders", description = "Gestion de ordenes y pagos")
 public class OrderController {
 
     private final OrderService orderService;
+    private final PaymentGatewayService paymentGatewayService;
+
+    private static final String ORDER_CREATED_SUCCESS_MSG = "Orden creada exitosamente";
+    private static final String PAYMENT_INTENT_REQUIRED_MSG = "paymentIntentId es requerido";
+    private static final String PAYMENT_CONFIRMED_SUCCESS_MSG = "Pago confirmado exitosamente";
+    private static final String ORDER_CANCELLED_SUCCESS_MSG = "Orden cancelada exitosamente";
+    private static final String PAYMENT_NOT_FOUND_MSG = "Pago no encontrado";
 
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
@@ -44,7 +52,7 @@ public class OrderController {
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "success");
-            response.put("message", "Orden creada exitosamente");
+            response.put("message", ORDER_CREATED_SUCCESS_MSG);
             response.put("data", orderResponse);
             response.put("timestamp", LocalDateTime.now());
 
@@ -72,7 +80,7 @@ public class OrderController {
             if (paymentIntentId == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", "error",
-                        "message", "paymentIntentId es requerido",
+                        "message", PAYMENT_INTENT_REQUIRED_MSG,
                         "timestamp", LocalDateTime.now()
                 ));
             }
@@ -81,12 +89,12 @@ public class OrderController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Pago confirmado exitosamente",
+                    "message", PAYMENT_CONFIRMED_SUCCESS_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 
         } catch (Exception e) {
-            log.error("Error confirmando pago: {}", e.getMessage());
+            log.error("Error confirmando pago: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -97,7 +105,7 @@ public class OrderController {
 
     @GetMapping("/my-orders")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Obtener historial de órdenes del usuario")
+    @Operation(summary = "Obtener historial de ordenes del usuario")
     public ResponseEntity<?> getMyOrders(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
@@ -121,6 +129,7 @@ public class OrderController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error obteniendo ordenes para usuario: {}", userDetails.getUsername(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -131,7 +140,7 @@ public class OrderController {
 
     @GetMapping("/{orderNumber}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Obtener detalles de una orden específica")
+    @Operation(summary = "Obtener detalles de una orden especifica")
     public ResponseEntity<?> getOrderDetails(
             @PathVariable String orderNumber,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -146,6 +155,7 @@ public class OrderController {
             ));
 
         } catch (Exception e) {
+            log.error("Error obteniendo detalle de orden {}: {}", orderNumber, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -166,38 +176,12 @@ public class OrderController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Orden cancelada exitosamente",
+                    "message", ORDER_CANCELLED_SUCCESS_MSG,
                     "timestamp", LocalDateTime.now()
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
-    @PostMapping("/{orderNumber}/confirm-payment")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Confirmar pago exitoso (para webhooks o callbacks)")
-    public ResponseEntity<?> confirmPayment(
-            @PathVariable String orderNumber,
-            @AuthenticationPrincipal UserDetails userDetails) {
-
-        try {
-            log.info("Confirmación de pago recibida para orden: {}", orderNumber);
-
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", "Pago confirmado exitosamente para orden: " + orderNumber,
-                    "timestamp", LocalDateTime.now()
-            ));
-
-        } catch (Exception e) {
-            log.error("Error confirmando pago para orden: {}", orderNumber, e);
-
+            log.error("Error cancelando orden ID {}: {}", orderId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
@@ -207,7 +191,7 @@ public class OrderController {
     }
 
     @GetMapping("/health")
-    @Operation(summary = "Verificar estado del servicio de órdenes")
+    @Operation(summary = "Verificar estado del servicio de ordenes")
     public ResponseEntity<?> healthCheck() {
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -215,5 +199,50 @@ public class OrderController {
                 "timestamp", LocalDateTime.now(),
                 "message", "Order service is running"
         ));
+    }
+
+    @PostMapping("/simulate-payment")
+    @Operation(summary = "Simular pago para testing")
+    public ResponseEntity<?> simulatePayment(@RequestBody Map<String, Object> request) {
+        try {
+            String paymentIntentId = (String) request.get("paymentIntentId");
+            Boolean success = (Boolean) request.get("success");
+
+            if (paymentIntentId == null || success == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "paymentIntentId y success son requeridos",
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            boolean simulated = paymentGatewayService.simulatePayment(paymentIntentId, success);
+
+            if (!simulated) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", PAYMENT_NOT_FOUND_MSG,
+                        "timestamp", LocalDateTime.now()
+                ));
+            }
+
+            if (success) {
+                orderService.confirmPayment(paymentIntentId);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", success ? "Pago simulado y confirmado exitosamente" : "Pago simulado como fallido",
+                    "timestamp", LocalDateTime.now()
+            ));
+
+        } catch (Exception e) {
+            log.error("Error simulando pago: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
     }
 }
