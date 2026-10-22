@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Slf4j
 public class FileUploadController {
